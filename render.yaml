@@ -1,0 +1,42 @@
+# Render Blueprint — Lumina Connect
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: lumina-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lumina-db
+          property: connectionString
+      - key: CORS_ORIGINS
+        sync: false
+      - key: LANDING_BASE_URL
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+
+databases:
+  - name: lumina-db
+    plan: free
+    databaseName: lumina_connect
+    user: lumina
