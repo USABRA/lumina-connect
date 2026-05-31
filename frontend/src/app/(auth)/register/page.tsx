@@ -25,7 +25,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!loading && firebaseUser) {
-      router.replace("/");
+      router.replace("/dashboard");
     }
   }, [loading, firebaseUser, router]);
 
@@ -43,7 +43,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthCard title="Create account" subtitle="Launch NFC business cards for your company">
+    <AuthCard title="Create account" subtitle="Turn every handshake into measurable revenue">
       <FirebaseSetupAlert />
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

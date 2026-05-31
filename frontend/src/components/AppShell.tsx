@@ -1,5 +1,6 @@
 "use client";
 
+import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import InsightsIcon from "@mui/icons-material/Insights";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
@@ -30,18 +31,20 @@ import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
 const drawerWidth = 260;
 
 const navItems = [
-  { label: "Home", href: "/", icon: DashboardIcon },
+  { label: "Overview", href: "/dashboard", icon: DashboardIcon },
+  { label: "Business cards", href: "/products", icon: NfcIcon },
+  { label: "Leads", href: "/leads", icon: PeopleOutlinedIcon },
+  { label: "Analytics", href: "/analytics", icon: InsightsIcon },
+  { label: "Enterprise", href: "/enterprise", icon: BusinessCenterOutlinedIcon },
   { label: "Brand kit", href: "/settings", icon: PaletteOutlinedIcon },
-  { label: "Team cards", href: "/products", icon: NfcIcon },
-  { label: "Contacts", href: "/leads", icon: PeopleOutlinedIcon },
-  { label: "Insights", href: "/analytics", icon: InsightsIcon },
 ];
 
 const pageTitles: Record<string, string> = {
-  "/": "Home",
-  "/products": "Team cards",
-  "/leads": "Contacts",
-  "/analytics": "Insights",
+  "/dashboard": "Overview",
+  "/products": "Business cards",
+  "/leads": "Leads",
+  "/analytics": "Analytics",
+  "/enterprise": "Enterprise",
   "/settings": "Brand kit",
   "/account": "Account",
 };

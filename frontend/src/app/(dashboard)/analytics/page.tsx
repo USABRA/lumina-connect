@@ -77,17 +77,17 @@ export default function AnalyticsPage() {
   }
 
   const stats = [
-    { label: "Total taps", value: overview?.total_scans ?? 0, icon: QrCodeScannerOutlinedIcon, color: "#0ea5e9" },
-    { label: "Contacts", value: overview?.total_leads ?? 0, icon: PeopleOutlinedIcon, color: "#10b981" },
-    { label: "Tap → contact", value: overview ? `${overview.conversion_rate}%` : "—", icon: PercentIcon, color: "#6366f1" },
-    { label: "Taps today", value: overview?.scans_today ?? 0, icon: TodayOutlinedIcon, color: "#8b5cf6" },
+    { label: "Total Card Taps", value: overview?.total_scans ?? 0, icon: QrCodeScannerOutlinedIcon, color: "#0ea5e9" },
+    { label: "Leads Captured", value: overview?.total_leads ?? 0, icon: PeopleOutlinedIcon, color: "#10b981" },
+    { label: "Conversion Rate", value: overview ? `${overview.conversion_rate}%` : "—", icon: PercentIcon, color: "#6366f1" },
+    { label: "Taps Today", value: overview?.scans_today ?? 0, icon: TodayOutlinedIcon, color: "#8b5cf6" },
   ];
 
   return (
     <Box>
       <PageHeader
-        title="Insights"
-        subtitle="Card taps, engagement and contact activity across your team."
+        title="Analytics"
+        subtitle="Card taps, geographic insights, lead capture, and conversion across your team's business cards."
         action={
           <Button
             variant="outlined"
@@ -124,21 +124,21 @@ export default function AnalyticsPage() {
 
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, md: 6 }}>
-          <ContentCard title="Top Products" noPadding>
+          <ContentCard title="Top Business Cards" noPadding>
             <TableContainer>
               <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell>Code</TableCell>
                   <TableCell>Type</TableCell>
-                  <TableCell align="right">Scans</TableCell>
+                  <TableCell align="right">Taps</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {!overview?.top_products.length ? (
                   <TableRow>
                     <TableCell colSpan={3}>
-                      {loading ? "Loading…" : "No scans yet."}
+                      {loading ? "Loading…" : "No taps yet."}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -157,13 +157,13 @@ export default function AnalyticsPage() {
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
-          <ContentCard title="Top Campaigns" noPadding>
+          <ContentCard title="Top Teams" noPadding>
             <TableContainer>
               <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Campaign</TableCell>
-                  <TableCell align="right">Scans</TableCell>
+                  <TableCell>Team</TableCell>
+                  <TableCell align="right">Taps</TableCell>
                   <TableCell align="right">Leads</TableCell>
                   <TableCell align="right">Conv.</TableCell>
                 </TableRow>
@@ -172,7 +172,7 @@ export default function AnalyticsPage() {
                 {!overview?.top_campaigns.length ? (
                   <TableRow>
                     <TableCell colSpan={4}>
-                      {loading ? "Loading…" : "No campaign data yet."}
+                      {loading ? "Loading…" : "No team data yet."}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -193,14 +193,14 @@ export default function AnalyticsPage() {
       </Grid>
 
       <Box sx={{ mb: 3 }}>
-        <ContentCard title="Recent Scans" noPadding>
+        <ContentCard title="Recent Taps" noPadding>
         <TableContainer>
           <Table size="small">
           <TableHead>
             <TableRow>
               <TableCell>Time</TableCell>
-              <TableCell>Product</TableCell>
-              <TableCell>Campaign</TableCell>
+              <TableCell>Card</TableCell>
+              <TableCell>Team</TableCell>
               <TableCell>Device</TableCell>
               <TableCell>Location</TableCell>
             </TableRow>
@@ -209,7 +209,7 @@ export default function AnalyticsPage() {
             {interactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5}>
-                  {loading ? "Loading…" : "Scan a QR code to see interactions here."}
+                  {loading ? "Loading…" : "Tap a card to see interaction history here."}
                 </TableCell>
               </TableRow>
             ) : (
@@ -246,15 +246,15 @@ export default function AnalyticsPage() {
               <TableCell>Name</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Company</TableCell>
-              <TableCell>Product</TableCell>
-              <TableCell>Campaign</TableCell>
+              <TableCell>Card</TableCell>
+              <TableCell>Team</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5}>
-                  {loading ? "Loading…" : "Leads from landing page forms appear here."}
+                  {loading ? "Loading…" : "Leads from card contact forms appear here."}
                 </TableCell>
               </TableRow>
             ) : (

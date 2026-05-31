@@ -23,7 +23,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && firebaseUser) {
-      router.replace("/");
+      router.replace("/dashboard");
     }
   }, [loading, firebaseUser, router]);
 
@@ -41,7 +41,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthCard title="Sign in" subtitle="Manage your team's NFC business cards">
+    <AuthCard title="Sign in" subtitle="NFC business cards, lead capture, and networking analytics">
       <FirebaseSetupAlert />
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

@@ -67,9 +67,9 @@ export default function AnalyticsCharts({ data }: { data: AnalyticsOverview }) {
           gap: 2.5,
         }}
       >
-        <ChartCard title="Daily Scans">
+        <ChartCard title="Daily Taps">
           {dailyData.length === 0 ? (
-            <Typography color="text.secondary">No scan data yet.</Typography>
+            <Typography color="text.secondary">No tap data yet.</Typography>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={dailyData}>
@@ -95,7 +95,7 @@ export default function AnalyticsCharts({ data }: { data: AnalyticsOverview }) {
           )}
         </ChartCard>
 
-        <ChartCard title="Geographic Heat Map">
+        <ChartCard title="Interaction Heatmap">
           {geoData.length === 0 ? (
             <Typography color="text.secondary">No location data yet.</Typography>
           ) : (
@@ -125,9 +125,9 @@ export default function AnalyticsCharts({ data }: { data: AnalyticsOverview }) {
           gap: 2.5,
         }}
       >
-        <ChartCard title="Top Campaigns (Scans vs Leads)">
+        <ChartCard title="Top Teams (Taps vs Leads)">
           {campaignData.length === 0 ? (
-            <Typography color="text.secondary">No campaigns yet.</Typography>
+            <Typography color="text.secondary">No team data yet.</Typography>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={campaignData}>
@@ -142,14 +142,14 @@ export default function AnalyticsCharts({ data }: { data: AnalyticsOverview }) {
                   }}
                 />
                 <Legend />
-                <Bar dataKey="scans" fill="#6366f1" name="Scans" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="scans" fill="#6366f1" name="Taps" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="leads" fill="#10b981" name="Leads" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
         </ChartCard>
 
-        <ChartCard title="Leads by Campaign">
+        <ChartCard title="Leads by Team">
           {leadsData.length === 0 ? (
             <Typography color="text.secondary">No leads captured yet.</Typography>
           ) : (
@@ -187,7 +187,7 @@ export default function AnalyticsCharts({ data }: { data: AnalyticsOverview }) {
           gap: 2.5,
         }}
       >
-        <ChartCard title="Scans by Country">
+        <ChartCard title="Taps by Country">
           {countryData.length === 0 ? (
             <Typography color="text.secondary">No country data yet.</Typography>
           ) : (
@@ -203,7 +203,7 @@ export default function AnalyticsCharts({ data }: { data: AnalyticsOverview }) {
                     boxShadow: "0 4px 12px rgba(15,23,42,0.08)",
                   }}
                 />
-                <Bar dataKey="scan_count" name="Scans" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="scan_count" name="Taps" radius={[4, 4, 0, 0]}>
                   {countryData.map((_, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />
                   ))}
@@ -213,7 +213,7 @@ export default function AnalyticsCharts({ data }: { data: AnalyticsOverview }) {
           )}
         </ChartCard>
 
-        <ChartCard title="Scans by Device">
+        <ChartCard title="Taps by Device">
           {deviceData.length === 0 ? (
             <Typography color="text.secondary">No device data yet.</Typography>
           ) : (

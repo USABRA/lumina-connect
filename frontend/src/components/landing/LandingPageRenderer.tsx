@@ -20,6 +20,7 @@ import Typography from "@mui/material/Typography";
 import LeadForm from "@/components/landing/LeadForm";
 import type { LandingBlock } from "@/lib/landingBlocks";
 import type { LandingPreviewData } from "@/lib/landingTemplates";
+import { APP_NAME } from "@/lib/branding";
 import { getContactVcardUrl } from "@/lib/api";
 import { normalizeLinkedInUrl, whatsappHref } from "@/lib/vcard";
 
@@ -955,7 +956,7 @@ export default function LandingPageRenderer({
       {!compact && template !== "nfc_card" && (
         <Box sx={{ py: 3, textAlign: "center", bgcolor: "#f8fafc", borderTop: "1px solid", borderColor: "divider" }}>
           <Typography variant="caption" color="text.secondary">
-            Powered by Lumina Card
+            Powered by {APP_NAME}
           </Typography>
         </Box>
       )}

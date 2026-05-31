@@ -130,6 +130,8 @@ export type DashboardStats = {
   products_tracked: number;
   total_interactions: number;
   leads_captured: number;
+  unique_visitors: number;
+  conversion_rate: number;
 };
 
 export type AnalyticsOverview = {

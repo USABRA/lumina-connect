@@ -182,8 +182,8 @@ export default function TeamCardsPage() {
   return (
     <Box>
       <PageHeader
-        title="Team cards"
-        subtitle="One digital card per person — program your NFC chip or share the QR link."
+        title="Business cards"
+        subtitle="Digital identity for every team member — NFC tap, QR share, lead capture, and profile links."
         action={
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
             <Button

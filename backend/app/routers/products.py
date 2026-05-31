@@ -106,6 +106,8 @@ class DashboardStats(BaseModel):
     products_tracked: int
     total_interactions: int
     leads_captured: int
+    unique_visitors: int = 0
+    conversion_rate: float = 0.0
 
 
 def _build_qr_url(code: str) -> str:
@@ -134,6 +136,7 @@ def dashboard_stats(
     db: Annotated[Session, Depends(get_db)],
 ) -> DashboardStats:
     from app.models import Interaction, Lead
+    from sqlalchemy import func
 
     company_id = require_company(user)
     campaign_ids = [
@@ -146,6 +149,8 @@ def dashboard_stats(
             products_tracked=0,
             total_interactions=0,
             leads_captured=0,
+            unique_visitors=0,
+            conversion_rate=0.0,
         )
 
     product_ids = [
@@ -167,12 +172,24 @@ def dashboard_stats(
     leads_captured = (
         db.query(Lead).filter(Lead.product_id.in_(product_ids)).count() if product_ids else 0
     )
+    unique_visitors = (
+        db.query(func.count(func.distinct(Interaction.ip_address)))
+        .filter(Interaction.product_id.in_(product_ids), Interaction.ip_address.isnot(None))
+        .scalar()
+        if product_ids
+        else 0
+    ) or 0
+    conversion_rate = (
+        round(leads_captured / total_interactions * 100, 1) if total_interactions else 0.0
+    )
 
     return DashboardStats(
         active_campaigns=active_campaigns,
         products_tracked=products_tracked,
         total_interactions=total_interactions,
         leads_captured=leads_captured,
+        unique_visitors=unique_visitors,
+        conversion_rate=conversion_rate,
     )
 
 

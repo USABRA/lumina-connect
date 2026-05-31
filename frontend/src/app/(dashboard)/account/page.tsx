@@ -14,6 +14,7 @@ import ContentCard from "@/components/ui/ContentCard";
 import PageHeader from "@/components/ui/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
+import { APP_NAME } from "@/lib/branding";
 import type { UserProfile } from "@/lib/api";
 
 const MAX_AVATAR_BYTES = 500_000;
@@ -174,7 +175,7 @@ export default function AccountPage() {
           <Box sx={{ p: 2.5 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {firebaseReady
-                ? "Sign out of Lumina Connect on this device."
+                ? `Sign out of ${APP_NAME} on this device.`
                 : "Dev mode — sign out returns to the login screen."}
             </Typography>
             <Button

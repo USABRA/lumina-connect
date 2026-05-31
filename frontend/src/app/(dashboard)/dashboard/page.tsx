@@ -1,12 +1,14 @@
 "use client";
 
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import NfcIcon from "@mui/icons-material/Nfc";
-import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
+import PercentIcon from "@mui/icons-material/Percent";
 import RadioButtonUncheckedOutlinedIcon from "@mui/icons-material/RadioButtonUncheckedOutlined";
 import TapAndPlayOutlinedIcon from "@mui/icons-material/TapAndPlayOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
@@ -19,24 +21,26 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import DashboardActivityChart from "@/components/analytics/DashboardActivityChart";
 import ContentCard from "@/components/ui/ContentCard";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
 import { APP_TAGLINE } from "@/lib/branding";
-import type { CompanyBrand, DashboardStats, InteractionEvent } from "@/lib/api";
+import type { AnalyticsOverview, CompanyBrand, DashboardStats, InteractionEvent } from "@/lib/api";
 
 const setupSteps = [
   { label: "Configure brand kit", href: "/settings", key: "brand" as const },
-  { label: "Add first team card", href: "/products", key: "card" as const },
-  { label: "Program NFC or share QR", href: "/products", key: "nfc" as const },
+  { label: "Issue first business card", href: "/products", key: "card" as const },
+  { label: "Program NFC or share profile link", href: "/products", key: "nfc" as const },
 ];
 
 export default function DashboardPage() {
   const { profile } = useAuth();
   const { request } = useApi();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
   const [brand, setBrand] = useState<CompanyBrand | null>(null);
   const [recentTaps, setRecentTaps] = useState<InteractionEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,14 +52,16 @@ export default function DashboardPage() {
     (async () => {
       setLoading(true);
       try {
-        const [dash, brandData, taps] = await Promise.all([
+        const [dash, brandData, taps, overviewData] = await Promise.all([
           request<DashboardStats>("/products/stats/dashboard"),
           request<CompanyBrand>("/companies/brand"),
           request<InteractionEvent[]>("/analytics/interactions?limit=5"),
+          request<AnalyticsOverview>("/analytics/overview"),
         ]);
         setStats(dash);
         setBrand(brandData);
         setRecentTaps(taps);
+        setOverview(overviewData);
       } catch {
         setStats(null);
       } finally {
@@ -79,7 +85,7 @@ export default function DashboardPage() {
         subtitle={company ? `${company} · ${APP_TAGLINE}` : APP_TAGLINE}
         action={
           <Button component={Link} href="/products" variant="contained" startIcon={<NfcIcon />}>
-            Add team member
+            Issue business card
           </Button>
         }
       />
@@ -94,43 +100,37 @@ export default function DashboardPage() {
         }}
       >
         <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>
-          NFC cards for your whole team
+          Turn every handshake into measurable revenue
         </Typography>
-        <Typography sx={{ opacity: 0.85, maxWidth: 560, mb: 2.5 }}>
-          Set your brand once, add each person&apos;s name and role, then program the chip or print the QR.
-          Every tap opens their digital business card.
+        <Typography sx={{ opacity: 0.85, maxWidth: 620, mb: 2.5 }}>
+          Every NFC card is a lead generation tool. Track taps, capture contacts, and see how your network converts into business opportunities.
         </Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-          <Button component={Link} href="/settings" variant="contained" sx={{ bgcolor: "white", color: "#0f172a", "&:hover": { bgcolor: "#f1f5f9" } }}>
-            Brand kit
+          <Button component={Link} href="/products" variant="contained" sx={{ bgcolor: "white", color: "#0f172a", "&:hover": { bgcolor: "#f1f5f9" } }}>
+            Business cards
           </Button>
-          <Button component={Link} href="/products" variant="outlined" sx={{ borderColor: "rgba(255,255,255,0.4)", color: "white" }}>
-            Team cards
+          <Button component={Link} href="/analytics" variant="outlined" sx={{ borderColor: "rgba(255,255,255,0.4)", color: "white" }}>
+            Lead intelligence
           </Button>
         </Box>
       </Paper>
 
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard label="Team cards" value={stats?.products_tracked ?? 0} icon={NfcIcon} color="#6366f1" loading={loading} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard label="Total taps" value={stats?.total_interactions ?? 0} icon={TapAndPlayOutlinedIcon} color="#0ea5e9" loading={loading} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard label="Contacts saved" value={stats?.leads_captured ?? 0} icon={PeopleOutlinedIcon} color="#10b981" loading={loading} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
-            label="Active cards"
-            value={stats?.products_tracked ?? 0}
-            icon={PaletteOutlinedIcon}
-            color="#8b5cf6"
-            loading={loading}
-            hint={hasBrand ? "Brand configured" : "Brand kit pending"}
-          />
-        </Grid>
-      </Grid>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(5, 1fr)" },
+          gap: 2.5,
+          mb: 3,
+        }}
+      >
+        <StatCard label="Total Card Taps" value={stats?.total_interactions ?? 0} icon={TapAndPlayOutlinedIcon} color="#0ea5e9" loading={loading} />
+        <StatCard label="Unique Visitors" value={stats?.unique_visitors ?? 0} icon={VisibilityOutlinedIcon} color="#6366f1" loading={loading} />
+        <StatCard label="Leads Captured" value={stats?.leads_captured ?? 0} icon={PeopleOutlinedIcon} color="#10b981" loading={loading} />
+        <StatCard label="Meetings Scheduled" value="—" icon={CalendarMonthOutlinedIcon} color="#f59e0b" loading={loading} hint="Via Calendly link" />
+        <StatCard label="Conversion Rate" value={stats ? `${stats.conversion_rate}%` : "—"} icon={PercentIcon} color="#8b5cf6" loading={loading} />
+      </Box>
+
+      {overview && <Box sx={{ mb: 3 }}><DashboardActivityChart daily={overview.daily_scans} /></Box>}
 
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, md: 5 }}>
@@ -173,20 +173,20 @@ export default function DashboardPage() {
 
         <Grid size={{ xs: 12, md: 7 }}>
           <ContentCard
-            title="Recent taps"
+            title="Recent card activity"
             action={
               <Button component={Link} href="/analytics" size="small" endIcon={<ArrowForwardIcon />}>
-                Insights
+                Analytics
               </Button>
             }
           >
             {recentTaps.length === 0 ? (
               <Box sx={{ p: 4, textAlign: "center" }}>
                 <Typography color="text.secondary" variant="body2">
-                  No taps yet. Share a card link or program an NFC tag to start tracking.
+                  No taps yet. Share a card link or program an NFC tag to start lead intelligence.
                 </Typography>
                 <Button component={Link} href="/products" variant="contained" size="small" sx={{ mt: 2 }}>
-                  Create a card
+                  Issue a card
                 </Button>
               </Box>
             ) : (
@@ -202,7 +202,7 @@ export default function DashboardPage() {
                           </Box>
                         </Typography>
                       }
-                      secondary={`${tap.city ?? "Unknown"}, ${tap.country ?? "—"} · ${new Date(tap.timestamp).toLocaleString()}`}
+                      secondary={`${tap.city ?? "Unknown"}, ${tap.country ?? "—"} · ${tap.device_type ?? "Unknown device"} · ${new Date(tap.timestamp).toLocaleString()}`}
                     />
                   </ListItem>
                 ))}

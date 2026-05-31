@@ -163,8 +163,8 @@ export default function LeadsPage() {
   return (
     <Box>
       <PageHeader
-        title="Contacts"
-        subtitle="People who shared their info after tapping a team member's card."
+        title="Leads"
+        subtitle="Contacts captured from business card taps and lead forms."
         action={
           <Button
             variant="outlined"
@@ -213,7 +213,7 @@ export default function LeadsPage() {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            label="Campaigns"
+            label="Teams"
             value={uniqueCampaigns}
             icon={CampaignOutlinedIcon}
             color="#4f46e5"
