@@ -77,17 +77,17 @@ export default function AnalyticsPage() {
   }
 
   const stats = [
-    { label: "Total Scans", value: overview?.total_scans ?? 0, icon: QrCodeScannerOutlinedIcon, color: "#8b5cf6" },
-    { label: "Total Leads", value: overview?.total_leads ?? 0, icon: PeopleOutlinedIcon, color: "#10b981" },
-    { label: "Conversion Rate", value: overview ? `${overview.conversion_rate}%` : "—", icon: PercentIcon, color: "#4f46e5" },
-    { label: "Scans Today", value: overview?.scans_today ?? 0, icon: TodayOutlinedIcon, color: "#0ea5e9" },
+    { label: "Total taps", value: overview?.total_scans ?? 0, icon: QrCodeScannerOutlinedIcon, color: "#0ea5e9" },
+    { label: "Contacts", value: overview?.total_leads ?? 0, icon: PeopleOutlinedIcon, color: "#10b981" },
+    { label: "Tap → contact", value: overview ? `${overview.conversion_rate}%` : "—", icon: PercentIcon, color: "#6366f1" },
+    { label: "Taps today", value: overview?.scans_today ?? 0, icon: TodayOutlinedIcon, color: "#8b5cf6" },
   ];
 
   return (
     <Box>
       <PageHeader
-        title="Analytics"
-        subtitle="Conversion rates, campaign performance, and geographic insights."
+        title="Insights"
+        subtitle="Card taps, engagement and contact activity across your team."
         action={
           <Button
             variant="outlined"

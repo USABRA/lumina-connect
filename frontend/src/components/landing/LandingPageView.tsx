@@ -37,6 +37,7 @@ export default function LandingPageView({
           highlight_2: product.highlight_2,
           highlight_3: product.highlight_3,
           landing_blocks: parseLandingBlocks(product.landing_blocks),
+          brand_website: product.brand_website,
         }}
       />
     </Box>

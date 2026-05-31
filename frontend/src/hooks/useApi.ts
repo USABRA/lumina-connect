@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, uploadImage as uploadImageApi } from "@/lib/api";
 
 export function useApi() {
   const { firebaseUser } = useAuth();
@@ -16,5 +16,13 @@ export function useApi() {
     [firebaseUser]
   );
 
-  return { request };
+  const uploadImage = useCallback(
+    async (file: File): Promise<string> => {
+      const token = firebaseUser ? await firebaseUser.getIdToken() : undefined;
+      return uploadImageApi(file, token);
+    },
+    [firebaseUser]
+  );
+
+  return { request, uploadImage };
 }

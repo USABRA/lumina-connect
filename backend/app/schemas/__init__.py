@@ -21,6 +21,24 @@ class CompanyRead(CompanyBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    brand_logo_url: Optional[str] = None
+    brand_color: Optional[str] = None
+    brand_tagline: Optional[str] = None
+    brand_website: Optional[str] = None
+    brand_phone: Optional[str] = None
+    default_meeting_url: Optional[str] = None
+    default_pdf_url: Optional[str] = None
+
+
+class CompanyBrandUpdate(BaseModel):
+    company_name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    brand_logo_url: Optional[str] = Field(default=None, max_length=500)
+    brand_color: Optional[str] = Field(default=None, max_length=20)
+    brand_tagline: Optional[str] = Field(default=None, max_length=500)
+    brand_website: Optional[str] = Field(default=None, max_length=500)
+    brand_phone: Optional[str] = Field(default=None, max_length=50)
+    default_meeting_url: Optional[str] = Field(default=None, max_length=500)
+    default_pdf_url: Optional[str] = Field(default=None, max_length=500)
 
 
 class UserBase(BaseModel):
@@ -94,6 +112,8 @@ class ProductRead(ProductBase):
     highlight_2: Optional[str] = None
     highlight_3: Optional[str] = None
     landing_blocks: Optional[list[dict[str, Any]]] = None
+    linkedin_url: Optional[str] = None
+    whatsapp: Optional[str] = None
 
 
 class LandingPageUpdate(BaseModel):
@@ -106,11 +126,13 @@ class LandingPageUpdate(BaseModel):
     contact_form_enabled: Optional[bool] = None
     landing_template: Optional[str] = Field(default=None, max_length=50)
     primary_color: Optional[str] = Field(default=None, max_length=20)
-    hero_image_url: Optional[str] = Field(default=None, max_length=500)
+    hero_image_url: Optional[str] = Field(default=None, max_length=2000)
     highlight_1: Optional[str] = Field(default=None, max_length=255)
     highlight_2: Optional[str] = Field(default=None, max_length=255)
     highlight_3: Optional[str] = Field(default=None, max_length=255)
     landing_blocks: Optional[list[dict[str, Any]]] = None
+    linkedin_url: Optional[str] = Field(default=None, max_length=500)
+    whatsapp: Optional[str] = Field(default=None, max_length=50)
 
 
 class LeadSubmit(BaseModel):

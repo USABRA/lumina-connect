@@ -14,9 +14,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import { APP_DESCRIPTION, APP_NAME } from "@/lib/branding";
+
 export const metadata: Metadata = {
-  title: "Lumina Connect",
-  description: "QR-powered product engagement and lead capture platform",
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
 };
 
 export default function RootLayout({

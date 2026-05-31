@@ -30,7 +30,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             justifyContent: "center",
           }}
         >
-          Dev mode — Firebase not configured. Add credentials to <code>.env.local</code> to enable auth.
+          Dev mode — running locally without Firebase login. Your cards and brand kit still work.
         </Alert>
         {children}
       </Box>

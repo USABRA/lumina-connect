@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 
@@ -15,17 +16,14 @@ from app.schemas import LandingPageUpdate, ProductRead
 from app.services.access import get_company_campaign, get_company_product, require_company
 from app.services.codes import generate_unique_code
 from app.services.product_access import require_active_product
+from app.services.vcard import build_vcard, vcard_filename
 
 router = APIRouter(prefix="/products", tags=["products"])
 
-LANDING_TEMPLATES = frozenset({"showcase", "split", "trade_show", "media_center", "brand_story", "custom"})
+LANDING_TEMPLATES = frozenset({"showcase", "split", "trade_show", "media_center", "brand_story", "custom", "nfc_card"})
 
 PRODUCT_TYPES = [
     "NFC Business Card",
-    "Smart Coaster",
-    "Event Badge",
-    "Promotional Giveaway",
-    "Product Tag",
 ]
 
 
@@ -61,6 +59,9 @@ class ProductPublicRead(BaseModel):
     highlight_2: Optional[str] = None
     highlight_3: Optional[str] = None
     landing_blocks: Optional[list] = None
+    brand_website: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    whatsapp: Optional[str] = None
 
 
 def _apply_landing(product: Product, landing: LandingPageUpdate) -> None:
@@ -73,26 +74,30 @@ def _apply_landing(product: Product, landing: LandingPageUpdate) -> None:
 
 def _product_public(product: Product) -> ProductPublicRead:
     headline = product.landing_headline or product.product_type
+    company = product.campaign.company
     return ProductPublicRead(
         unique_code=product.unique_code,
         product_type=product.product_type,
         qr_url=product.qr_url,
         campaign_name=product.campaign.name,
-        company_name=product.campaign.company.company_name,
+        company_name=company.company_name,
         landing_headline=headline,
         landing_description=product.landing_description,
-        logo_url=product.logo_url,
+        logo_url=product.logo_url or company.brand_logo_url,
         video_url=product.video_url,
         pdf_url=product.pdf_url,
-        meeting_url=product.meeting_url,
+        meeting_url=product.meeting_url or company.default_meeting_url,
         contact_form_enabled=product.contact_form_enabled,
         landing_template=product.landing_template,
-        primary_color=product.primary_color,
+        primary_color=product.primary_color or company.brand_color,
         hero_image_url=product.hero_image_url,
         highlight_1=product.highlight_1,
         highlight_2=product.highlight_2,
         highlight_3=product.highlight_3,
         landing_blocks=product.landing_blocks,
+        brand_website=company.brand_website,
+        linkedin_url=product.linkedin_url,
+        whatsapp=product.whatsapp,
     )
 
 
@@ -209,6 +214,45 @@ def create_product(
     db.commit()
     db.refresh(product)
     return ProductRead.model_validate(product)
+
+
+@router.get("/by-code/{unique_code}/contact.vcf")
+def get_product_contact_vcard(
+    unique_code: str,
+    db: Annotated[Session, Depends(get_db)],
+) -> Response:
+    product = (
+        db.query(Product)
+        .options(joinedload(Product.campaign).joinedload(Campaign.company))
+        .filter(Product.unique_code == unique_code.upper())
+        .one_or_none()
+    )
+    if product is None:
+        raise HTTPException(status_code=404, detail="Product not found")
+    require_active_product(product)
+
+    public = _product_public(product)
+    phone = public.highlight_2
+    email = public.highlight_3
+    if not phone and not email:
+        raise HTTPException(status_code=404, detail="No contact details on this card")
+
+    full_name = public.landing_headline or public.product_type
+    content = build_vcard(
+        full_name=full_name,
+        job_title=public.highlight_1,
+        company=public.company_name,
+        phone=phone,
+        email=email,
+        website=public.brand_website,
+        linkedin=public.linkedin_url,
+    )
+    filename = vcard_filename(full_name)
+    return Response(
+        content=content,
+        media_type="text/vcard; charset=utf-8",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
 
 
 @router.get("/by-code/{unique_code}", response_model=ProductPublicRead)

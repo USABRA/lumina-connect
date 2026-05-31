@@ -8,7 +8,8 @@ export type LandingTemplateId =
   | "trade_show"
   | "media_center"
   | "brand_story"
-  | "custom";
+  | "custom"
+  | "nfc_card";
 
 export type LandingPageConfig = LandingPageUpdate & {
   landing_template: LandingTemplateId;
@@ -25,6 +26,13 @@ export type LandingTemplate = {
 };
 
 export const LANDING_TEMPLATES: LandingTemplate[] = [
+  {
+    id: "nfc_card",
+    name: "NFC Business Card",
+    description: "Mobile-first digital card — name, role, tap-to-call, email and booking links.",
+    accent: "#0f172a",
+    sections: ["Profile", "Quick actions", "Company brand"],
+  },
   {
     id: "showcase",
     name: "Showcase",
@@ -172,6 +180,19 @@ export function buildLandingFromTemplate(
           `We build ${productType} experiences that turn every scan into a meaningful conversation.`,
         landing_blocks: current?.landing_blocks,
       };
+    case "nfc_card":
+      return {
+        ...base,
+        landing_template: "nfc_card",
+        primary_color: current?.primary_color || "#0f172a",
+        landing_headline: current?.landing_headline || companyName,
+        landing_description: current?.landing_description || "Tap to connect",
+        highlight_1: current?.highlight_1 || "Your role / title",
+        highlight_2: current?.highlight_2 || "",
+        highlight_3: current?.highlight_3 || "",
+        contact_form_enabled: false,
+        landing_blocks: current?.landing_blocks,
+      };
     default:
       return { ...base, landing_blocks: current?.landing_blocks };
   }
@@ -193,6 +214,8 @@ export function productToLandingConfig(product: {
   primary_color?: string | null;
   landing_blocks?: unknown;
   product_type: string;
+  linkedin_url?: string | null;
+  whatsapp?: string | null;
 }): LandingPageConfig {
   const legacyMap: Record<string, LandingTemplateId> = {
     classic: "showcase",
@@ -221,6 +244,8 @@ export function productToLandingConfig(product: {
     meeting_url: product.meeting_url ?? "",
     contact_form_enabled: product.contact_form_enabled ?? true,
     landing_blocks: parseLandingBlocks(product.landing_blocks),
+    linkedin_url: product.linkedin_url ?? "",
+    whatsapp: product.whatsapp ?? "",
   };
 }
 
@@ -240,6 +265,8 @@ export function landingConfigToPayload(config: LandingPageConfig): LandingPageUp
     meeting_url: config.meeting_url || null,
     contact_form_enabled: config.contact_form_enabled,
     landing_blocks: config.landing_blocks?.length ? config.landing_blocks : null,
+    linkedin_url: config.linkedin_url || null,
+    whatsapp: config.whatsapp || null,
   };
 }
 
@@ -262,6 +289,9 @@ export type LandingPreviewData = {
   landing_template: string;
   primary_color?: string | null;
   landing_blocks?: LandingBlock[];
+  brand_website?: string | null;
+  linkedin_url?: string | null;
+  whatsapp?: string | null;
 };
 
 export function configToPreview(
@@ -287,5 +317,7 @@ export function configToPreview(
     landing_template: config.landing_template,
     primary_color: config.primary_color,
     landing_blocks: config.landing_blocks,
+    linkedin_url: config.linkedin_url || null,
+    whatsapp: config.whatsapp || null,
   };
 }

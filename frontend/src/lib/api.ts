@@ -13,7 +13,27 @@ export type UserProfile = {
     id: number;
     company_name: string;
     subscription_plan: string;
+    brand_logo_url?: string | null;
+    brand_color?: string | null;
+    brand_tagline?: string | null;
+    brand_website?: string | null;
+    brand_phone?: string | null;
+    default_meeting_url?: string | null;
+    default_pdf_url?: string | null;
   } | null;
+};
+
+export type CompanyBrand = NonNullable<UserProfile["company"]>;
+
+export type CompanyBrandUpdate = {
+  company_name?: string;
+  brand_logo_url?: string | null;
+  brand_color?: string | null;
+  brand_tagline?: string | null;
+  brand_website?: string | null;
+  brand_phone?: string | null;
+  default_meeting_url?: string | null;
+  default_pdf_url?: string | null;
 };
 
 export type Campaign = {
@@ -46,6 +66,8 @@ export type Product = {
   highlight_2: string | null;
   highlight_3: string | null;
   landing_blocks?: unknown;
+  linkedin_url: string | null;
+  whatsapp: string | null;
 };
 
 export type ProductPublic = {
@@ -68,6 +90,9 @@ export type ProductPublic = {
   highlight_2: string | null;
   highlight_3: string | null;
   landing_blocks?: unknown;
+  brand_website?: string | null;
+  linkedin_url?: string | null;
+  whatsapp?: string | null;
 };
 
 export type LandingPageUpdate = {
@@ -85,6 +110,8 @@ export type LandingPageUpdate = {
   highlight_2?: string | null;
   highlight_3?: string | null;
   landing_blocks?: unknown[] | null;
+  linkedin_url?: string | null;
+  whatsapp?: string | null;
 };
 
 export type LeadEvent = {
@@ -142,7 +169,7 @@ export async function apiFetch<T>(
   options: RequestInit & { token?: string } = {}
 ): Promise<T> {
   const headers = new Headers(options.headers);
-  if (!headers.has("Content-Type") && options.body) {
+  if (!headers.has("Content-Type") && options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
   if (options.token) {
@@ -168,6 +195,17 @@ export async function apiFetch<T>(
   }
 
   return response.json() as Promise<T>;
+}
+
+export async function uploadImage(file: File, token?: string): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  const result = await apiFetch<{ url: string }>("/uploads/image", {
+    method: "POST",
+    body: form,
+    token,
+  });
+  return result.url;
 }
 
 export async function syncUser(
@@ -208,6 +246,10 @@ export class ProductUnavailableError extends Error {
     super("Product is not available");
     this.name = "ProductUnavailableError";
   }
+}
+
+export function getContactVcardUrl(code: string): string {
+  return `${API_URL}/products/by-code/${encodeURIComponent(code)}/contact.vcf`;
 }
 
 export async function getProductPublic(code: string): Promise<ProductPublic> {

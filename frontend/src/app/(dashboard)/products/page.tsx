@@ -1,10 +1,10 @@
 "use client";
 
-import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import DownloadIcon from "@mui/icons-material/Download";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import NfcIcon from "@mui/icons-material/Nfc";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PrintIcon from "@mui/icons-material/Print";
 import QrCode2Icon from "@mui/icons-material/QrCode2";
@@ -16,178 +16,156 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import FormControl from "@mui/material/FormControl";
 import IconButton from "@mui/material/IconButton";
-import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
-import Step from "@mui/material/Step";
-import StepLabel from "@mui/material/StepLabel";
-import Stepper from "@mui/material/Stepper";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "react-qr-code";
 
-import LandingPageBuilder from "@/components/landing/LandingPageBuilder";
+import NfcCardEditDialog from "@/components/products/NfcCardEditDialog";
+import NfcCardQuickCreate from "@/components/products/NfcCardQuickCreate";
 import QrPrintSheet from "@/components/products/QrPrintSheet";
 import ContentCard from "@/components/ui/ContentCard";
+import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
-import type { Campaign, Product } from "@/lib/api";
-import {
-  buildLandingFromTemplate,
-  DEFAULT_LANDING_CONFIG,
-  landingConfigToPayload,
-  productToLandingConfig,
-  type LandingPageConfig,
-} from "@/lib/landingTemplates";
+import type { Campaign, CompanyBrand, Product } from "@/lib/api";
+import { landingConfigToPayload, type LandingPageConfig } from "@/lib/landingTemplates";
 import { downloadSvgAsPng } from "@/lib/qrDownload";
 
-const CREATE_STEPS = ["Product", "Landing page"];
-
-export default function ProductsPage() {
+export default function TeamCardsPage() {
   const { profile } = useAuth();
   const { request } = useApi();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [productTypes, setProductTypes] = useState<string[]>([]);
-  const [selectedCampaign, setSelectedCampaign] = useState<number | "">("");
+  const [campaignId, setCampaignId] = useState<number | null>(null);
+  const [cards, setCards] = useState<Product[]>([]);
+  const [companyBrand, setCompanyBrand] = useState<CompanyBrand | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [createStep, setCreateStep] = useState(0);
-  const [qrProduct, setQrProduct] = useState<Product | null>(null);
-  const [landingProduct, setLandingProduct] = useState<Product | null>(null);
-  const [landingConfig, setLandingConfig] = useState<LandingPageConfig>(DEFAULT_LANDING_CONFIG);
-  const [form, setForm] = useState({ product_type: "", unique_code: "" });
   const [saving, setSaving] = useState(false);
+  const [nfcOpen, setNfcOpen] = useState(false);
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [qrProduct, setQrProduct] = useState<Product | null>(null);
   const [qrSheetOpen, setQrSheetOpen] = useState(false);
   const qrPreviewRef = useRef<HTMLDivElement>(null);
 
   const companyName = profile?.company?.company_name ?? "Your company";
-  const selectedCampaignName =
-    campaigns.find((c) => c.id === selectedCampaign)?.name ?? "Campaign";
+  const brandReady = Boolean(companyBrand?.brand_logo_url || companyBrand?.brand_tagline);
 
-  const builderContext = useMemo(
-    () => ({
-      productType: form.product_type || productTypes[0] || "Product",
-      companyName,
-      campaignName: landingProduct
-        ? campaigns.find((c) => c.id === landingProduct.campaign_id)?.name ?? selectedCampaignName
-        : selectedCampaignName,
-      productCode: landingProduct?.unique_code,
-    }),
-    [form.product_type, productTypes, companyName, selectedCampaignName, landingProduct, campaigns]
-  );
-
-  const loadCampaigns = useCallback(async () => {
-    return request<Campaign[]>("/campaigns");
-  }, [request]);
-
-  const loadProducts = useCallback(async () => {
-    if (!selectedCampaign) {
-      setProducts([]);
+  const loadCards = useCallback(async () => {
+    if (!campaignId) {
+      setCards([]);
       return;
     }
-    const data = await request<Product[]>(`/products?campaign_id=${selectedCampaign}`);
-    setProducts(data);
-  }, [request, selectedCampaign]);
+    const data = await request<Product[]>(`/products?campaign_id=${campaignId}`);
+    setCards(data);
+  }, [request, campaignId]);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       setError("");
       try {
-        const [types, camps] = await Promise.all([
-          request<string[]>("/products/types"),
-          loadCampaigns(),
+        const [camps, brand] = await Promise.all([
+          request<Campaign[]>("/campaigns"),
+          request<CompanyBrand>("/companies/brand"),
         ]);
-        setProductTypes(types);
-        setCampaigns(camps);
+        setCompanyBrand(brand);
         if (camps.length > 0) {
-          setSelectedCampaign((prev) => prev || camps[0].id);
+          setCampaignId(camps[0].id);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load data");
+        setError(err instanceof Error ? err.message : "Failed to load");
       } finally {
         setLoading(false);
       }
     })();
-  }, [request, loadCampaigns]);
+  }, [request]);
 
   useEffect(() => {
-    if (selectedCampaign) {
-      loadProducts().catch((err) =>
-        setError(err instanceof Error ? err.message : "Failed to load products")
+    if (campaignId) {
+      loadCards().catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load cards")
       );
     }
-  }, [selectedCampaign, loadProducts]);
+  }, [campaignId, loadCards]);
 
-  function openCreateDialog() {
-    const type = productTypes[0] ?? "";
-    setForm({ product_type: type, unique_code: "" });
-    setCreateStep(0);
-    setLandingConfig(
-      buildLandingFromTemplate("showcase", {
-        productType: type,
-        companyName,
-        campaignName: selectedCampaignName,
-      })
-    );
-    setCreateOpen(true);
-  }
-
-  function goToLandingStep() {
-    if (!form.product_type) return;
-    setLandingConfig((prev) =>
-      buildLandingFromTemplate(prev.landing_template, {
-        productType: form.product_type,
-        companyName,
-        campaignName: selectedCampaignName,
-      }, prev)
-    );
-    setCreateStep(1);
-  }
-
-  async function handleCreate() {
-    if (!selectedCampaign) return;
+  async function handleNfcCreate(payload: {
+    product_type: string;
+    unique_code?: string;
+    landing: LandingPageConfig;
+  }) {
+    if (!campaignId) return;
     setSaving(true);
     setError("");
     try {
       await request<Product>("/products", {
         method: "POST",
         body: JSON.stringify({
-          campaign_id: selectedCampaign,
-          product_type: form.product_type,
-          unique_code: form.unique_code || undefined,
-          landing: landingConfigToPayload(landingConfig),
+          campaign_id: campaignId,
+          product_type: payload.product_type,
+          unique_code: payload.unique_code,
+          landing: landingConfigToPayload(payload.landing),
         }),
       });
-      setCreateOpen(false);
-      setCreateStep(0);
-      await loadProducts();
+      setNfcOpen(false);
+      await loadCards();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create product");
+      setError(err instanceof Error ? err.message : "Failed to create card");
+      throw err;
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleDelete(product: Product) {
-    if (!confirm(`Delete product ${product.unique_code}?`)) return;
+  async function handleEditSave(landing: LandingPageConfig) {
+    if (!editProduct) return;
+    setSaving(true);
+    setError("");
     try {
-      await request(`/products/${product.id}`, { method: "DELETE" });
-      await loadProducts();
+      await request(`/products/${editProduct.id}/landing`, {
+        method: "PUT",
+        body: JSON.stringify(landingConfigToPayload(landing)),
+      });
+      setEditProduct(null);
+      await loadCards();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete product");
+      setError(err instanceof Error ? err.message : "Failed to save card");
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(card: Product) {
+    const name = card.landing_headline || card.unique_code;
+    if (!confirm(`Remove card for ${name}?`)) return;
+    try {
+      await request(`/products/${card.id}`, { method: "DELETE" });
+      await loadCards();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete");
+    }
+  }
+
+  async function handleStatusChange(card: Product, status: Product["status"]) {
+    if (card.status === status) return;
+    try {
+      await request(`/products/${card.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      });
+      await loadCards();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update status");
     }
   }
 
@@ -195,75 +173,45 @@ export default function ProductsPage() {
     navigator.clipboard.writeText(url);
   }
 
-  function openLandingEditor(product: Product) {
-    setLandingProduct(product);
-    setLandingConfig(productToLandingConfig(product));
-  }
-
-  async function handleSaveLanding() {
-    if (!landingProduct) return;
-    setSaving(true);
-    setError("");
-    try {
-      await request(`/products/${landingProduct.id}/landing`, {
-        method: "PUT",
-        body: JSON.stringify(landingConfigToPayload(landingConfig)),
-      });
-      setLandingProduct(null);
-      await loadProducts();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save landing page");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleStatusChange(product: Product, status: Product["status"]) {
-    if (product.status === status) return;
-    setError("");
-    try {
-      await request(`/products/${product.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ status }),
-      });
-      await loadProducts();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update status");
-    }
-  }
-
   function downloadSingleQr() {
     const svg = qrPreviewRef.current?.querySelector("svg");
     if (!svg || !qrProduct) return;
-    downloadSvgAsPng(svg, `${qrProduct.unique_code}-qr.png`);
+    downloadSvgAsPng(svg, `${qrProduct.unique_code}-nfc-card.png`);
   }
 
   return (
     <Box>
       <PageHeader
-        title="Products & QR"
-        subtitle="Create products with auto-generated landing pages — pick a layout, customize, and publish."
+        title="Team cards"
+        subtitle="One digital card per person — program your NFC chip or share the QR link."
         action={
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
             <Button
               variant="outlined"
               startIcon={<PrintIcon />}
-              disabled={!selectedCampaign || products.length === 0}
+              disabled={cards.length === 0}
               onClick={() => setQrSheetOpen(true)}
             >
-              QR sheet
+              Print QR sheet
             </Button>
             <Button
               variant="contained"
-              startIcon={<AddIcon />}
-              disabled={!selectedCampaign}
-              onClick={openCreateDialog}
+              startIcon={<NfcIcon />}
+              disabled={!campaignId}
+              onClick={() => setNfcOpen(true)}
             >
-              New product
+              Add team member
             </Button>
           </Box>
         }
       />
+
+      {!brandReady && (
+        <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+          Set up your company look first in{" "}
+          <Link href="/settings">Brand kit</Link> — logo, colors and default links apply to every card.
+        </Alert>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
@@ -271,78 +219,57 @@ export default function ProductsPage() {
         </Alert>
       )}
 
-      <FormControl fullWidth sx={{ mb: 2.5, maxWidth: 400 }}>
-        <InputLabel>Campaign</InputLabel>
-        <Select
-          value={selectedCampaign}
-          label="Campaign"
-          onChange={(e) => setSelectedCampaign(e.target.value as number)}
-        >
-          {campaigns.map((c) => (
-            <MenuItem key={c.id} value={c.id}>
-              {c.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
       <ContentCard noPadding>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Code</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Landing</TableCell>
-                <TableCell>Landing URL</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
+        {loading ? (
+          <Box sx={{ p: 4, textAlign: "center" }}>
+            <Typography color="text.secondary">Loading team cards…</Typography>
+          </Box>
+        ) : cards.length === 0 ? (
+          <EmptyState
+            icon={NfcIcon}
+            title="No cards yet"
+            description="Add your first team member to generate a digital NFC business card with tap-to-call, email and booking links."
+            action={
+              <Button variant="contained" startIcon={<NfcIcon />} onClick={() => setNfcOpen(true)}>
+                Add team member
+              </Button>
+            }
+          />
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={6}>Loading…</TableCell>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell>Card link</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
-              ) : products.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6}>
-                    {campaigns.length === 0
-                      ? "Create a campaign first."
-                      : "No products in this campaign yet."}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                products.map((product) => (
-                  <TableRow key={product.id} hover>
-                    <TableCell sx={{ fontFamily: "monospace", fontWeight: 600 }}>
-                      {product.unique_code}
-                    </TableCell>
-                    <TableCell>{product.product_type}</TableCell>
+              </TableHead>
+              <TableBody>
+                {cards.map((card) => (
+                  <TableRow key={card.id} hover>
                     <TableCell>
-                      <Chip
-                        label={product.landing_template?.replace("_", " ") ?? "classic"}
-                        size="small"
-                        variant="outlined"
-                        sx={{ textTransform: "capitalize" }}
-                      />
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        {card.landing_headline || "—"}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
+                        {card.unique_code}
+                      </Typography>
                     </TableCell>
+                    <TableCell>{card.highlight_1 || "—"}</TableCell>
                     <TableCell>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography variant="body2" noWrap sx={{ maxWidth: 180 }}>
-                          {product.qr_url}
+                        <Typography variant="body2" noWrap sx={{ maxWidth: 160 }}>
+                          {card.qr_url}
                         </Typography>
-                        {product.qr_url && (
+                        {card.qr_url && (
                           <>
-                            <IconButton size="small" onClick={() => copyUrl(product.qr_url!)}>
+                            <IconButton size="small" onClick={() => copyUrl(card.qr_url!)}>
                               <ContentCopyIcon fontSize="small" />
                             </IconButton>
-                            <IconButton
-                              size="small"
-                              component="a"
-                              href={product.qr_url!}
-                              target="_blank"
-                            >
+                            <IconButton size="small" component="a" href={card.qr_url!} target="_blank">
                               <OpenInNewIcon fontSize="small" />
                             </IconButton>
                           </>
@@ -352,10 +279,8 @@ export default function ProductsPage() {
                     <TableCell>
                       <Select
                         size="small"
-                        value={product.status}
-                        onChange={(e) =>
-                          handleStatusChange(product, e.target.value as Product["status"])
-                        }
+                        value={card.status}
+                        onChange={(e) => handleStatusChange(card, e.target.value as Product["status"])}
                         sx={{ minWidth: 110, textTransform: "capitalize" }}
                       >
                         <MenuItem value="active">Active</MenuItem>
@@ -364,132 +289,26 @@ export default function ProductsPage() {
                       </Select>
                     </TableCell>
                     <TableCell align="right">
-                      <IconButton
-                        aria-label="edit landing"
-                        size="small"
-                        onClick={() => openLandingEditor(product)}
-                      >
+                      <IconButton aria-label="edit" size="small" onClick={() => setEditProduct(card)}>
                         <EditOutlinedIcon fontSize="small" />
                       </IconButton>
-                      <IconButton aria-label="qr" size="small" onClick={() => setQrProduct(product)}>
+                      <IconButton aria-label="qr" size="small" onClick={() => setQrProduct(card)}>
                         <QrCode2Icon fontSize="small" />
                       </IconButton>
-                      <IconButton aria-label="delete" size="small" onClick={() => handleDelete(product)}>
+                      <IconButton aria-label="delete" size="small" onClick={() => handleDelete(card)}>
                         <DeleteOutlinedIcon fontSize="small" />
                       </IconButton>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </ContentCard>
 
-      <Dialog
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        fullWidth
-        maxWidth="lg"
-        scroll="paper"
-      >
-        <DialogTitle>Create product & landing page</DialogTitle>
-        <DialogContent dividers>
-          <Stepper activeStep={createStep} alternativeLabel sx={{ mb: 3 }}>
-            {CREATE_STEPS.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-
-          {createStep === 0 ? (
-            <Box sx={{ maxWidth: 480 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Basic product info for QR tracking. Next step: choose a landing page layout.
-              </Typography>
-              <FormControl fullWidth margin="normal">
-                <InputLabel>Product type</InputLabel>
-                <Select
-                  value={form.product_type}
-                  label="Product type"
-                  onChange={(e) => setForm({ ...form, product_type: e.target.value })}
-                >
-                  {productTypes.map((type) => (
-                    <MenuItem key={type} value={type}>
-                      {type}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <TextField
-                label="Custom code (optional)"
-                fullWidth
-                margin="normal"
-                helperText="Leave blank to auto-generate a unique code"
-                value={form.unique_code}
-                onChange={(e) => setForm({ ...form, unique_code: e.target.value.toUpperCase() })}
-              />
-            </Box>
-          ) : (
-            <LandingPageBuilder
-              value={landingConfig}
-              onChange={setLandingConfig}
-              context={{
-                productType: form.product_type,
-                companyName,
-                campaignName: selectedCampaignName,
-              }}
-            />
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
-          {createStep === 1 && (
-            <Button onClick={() => setCreateStep(0)}>Back</Button>
-          )}
-          {createStep === 0 ? (
-            <Button variant="contained" onClick={goToLandingStep} disabled={!form.product_type}>
-              Next: design landing
-            </Button>
-          ) : (
-            <Button variant="contained" onClick={handleCreate} disabled={saving}>
-              {saving ? "Creating…" : "Create product & publish page"}
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={!!landingProduct}
-        onClose={() => setLandingProduct(null)}
-        fullWidth
-        maxWidth="lg"
-        scroll="paper"
-      >
-        <DialogTitle>Edit landing page — {landingProduct?.unique_code}</DialogTitle>
-        <DialogContent dividers>
-          <LandingPageBuilder
-            value={landingConfig}
-            onChange={setLandingConfig}
-            context={builderContext}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setLandingProduct(null)}>Cancel</Button>
-          {landingProduct?.qr_url && (
-            <Button component="a" href={landingProduct.qr_url} target="_blank">
-              Open live page
-            </Button>
-          )}
-          <Button variant="contained" onClick={handleSaveLanding} disabled={saving}>
-            {saving ? "Saving…" : "Save landing page"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       <Dialog open={!!qrProduct} onClose={() => setQrProduct(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>QR Code — {qrProduct?.unique_code}</DialogTitle>
+        <DialogTitle>NFC / QR — {qrProduct?.landing_headline || qrProduct?.unique_code}</DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
           {qrProduct?.qr_url && (
             <>
@@ -497,8 +316,9 @@ export default function ProductsPage() {
                 <QRCode value={qrProduct.qr_url} size={200} />
               </Box>
               <Typography variant="body2" color="text.secondary" align="center">
-                {qrProduct.qr_url}
+                Program this URL on your NFC tag or print the QR code.
               </Typography>
+              <Chip label={qrProduct.qr_url} size="small" sx={{ maxWidth: "100%" }} />
             </>
           )}
         </DialogContent>
@@ -510,11 +330,26 @@ export default function ProductsPage() {
         </DialogActions>
       </Dialog>
 
-      <QrPrintSheet
-        open={qrSheetOpen}
-        onClose={() => setQrSheetOpen(false)}
-        products={products}
-        campaignName={selectedCampaignName}
+      <QrPrintSheet open={qrSheetOpen} onClose={() => setQrSheetOpen(false)} products={cards} campaignName={companyName} />
+
+      <NfcCardQuickCreate
+        open={nfcOpen}
+        onClose={() => setNfcOpen(false)}
+        onCreate={handleNfcCreate}
+        brand={companyBrand}
+        companyName={companyName}
+        campaignName={companyName}
+        saving={saving}
+      />
+
+      <NfcCardEditDialog
+        open={!!editProduct}
+        onClose={() => setEditProduct(null)}
+        product={editProduct}
+        brand={companyBrand}
+        companyName={companyName}
+        onSave={handleEditSave}
+        saving={saving}
       />
     </Box>
   );

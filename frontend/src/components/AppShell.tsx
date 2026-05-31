@@ -1,13 +1,12 @@
 "use client";
 
-import CampaignIcon from "@mui/icons-material/Campaign";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import InsightsIcon from "@mui/icons-material/Insights";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import NfcIcon from "@mui/icons-material/Nfc";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
-import QrCode2Icon from "@mui/icons-material/QrCode2";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Drawer from "@mui/material/Drawer";
@@ -26,23 +25,24 @@ import { useState } from "react";
 
 import UserAvatar from "@/components/UserAvatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
 
 const drawerWidth = 260;
 
 const navItems = [
-  { label: "Dashboard", href: "/", icon: DashboardIcon },
-  { label: "Campaigns", href: "/campaigns", icon: CampaignIcon },
-  { label: "Products & QR", href: "/products", icon: QrCode2Icon },
-  { label: "Leads", href: "/leads", icon: PeopleOutlinedIcon },
-  { label: "Analytics", href: "/analytics", icon: InsightsIcon },
+  { label: "Home", href: "/", icon: DashboardIcon },
+  { label: "Brand kit", href: "/settings", icon: PaletteOutlinedIcon },
+  { label: "Team cards", href: "/products", icon: NfcIcon },
+  { label: "Contacts", href: "/leads", icon: PeopleOutlinedIcon },
+  { label: "Insights", href: "/analytics", icon: InsightsIcon },
 ];
 
 const pageTitles: Record<string, string> = {
-  "/": "Dashboard",
-  "/campaigns": "Campaigns",
-  "/products": "Products & QR",
-  "/leads": "Leads",
-  "/analytics": "Analytics",
+  "/": "Home",
+  "/products": "Team cards",
+  "/leads": "Contacts",
+  "/analytics": "Insights",
+  "/settings": "Brand kit",
   "/account": "Account",
 };
 
@@ -51,7 +51,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { profile, logout } = useAuth();
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
-  const pageTitle = pageTitles[pathname] ?? "Lumina Connect";
+  const pageTitle = pageTitles[pathname] ?? APP_NAME;
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
@@ -65,33 +65,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             boxSizing: "border-box",
             borderRight: "1px solid",
             borderColor: "divider",
-            bgcolor: "background.paper",
+            bgcolor: "#0f172a",
+            color: "#f8fafc",
           },
         }}
       >
         <Box sx={{ px: 2.5, py: 3, display: "flex", alignItems: "center", gap: 1.5 }}>
           <Box
             sx={{
-              width: 36,
-              height: 36,
+              width: 40,
+              height: 40,
               borderRadius: 2,
-              background: "linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%)",
+              background: "linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "white",
-              fontWeight: 800,
-              fontSize: "1rem",
             }}
           >
-            L
+            <NfcIcon sx={{ fontSize: 22 }} />
           </Box>
           <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-              Lumina
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.2, color: "white" }}>
+              {APP_NAME}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Connect
+            <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+              {APP_TAGLINE}
             </Typography>
           </Box>
         </Box>
@@ -105,23 +104,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 component={Link}
                 href={href}
                 selected={selected}
+                sx={{
+                  color: selected ? "white" : "#cbd5e1",
+                  "&.Mui-selected": {
+                    bgcolor: "rgba(99, 102, 241, 0.25)",
+                    "&:hover": { bgcolor: "rgba(99, 102, 241, 0.32)" },
+                  },
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
+                }}
               >
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <Icon
-                    sx={{
-                      fontSize: 22,
-                      color: selected ? "primary.main" : "text.secondary",
-                    }}
-                  />
+                <ListItemIcon sx={{ minWidth: 40, color: "inherit" }}>
+                  <Icon sx={{ fontSize: 22 }} />
                 </ListItemIcon>
                 <ListItemText
                   primary={label}
                   slotProps={{
                     primary: {
                       sx: {
-                        fontWeight: selected ? 600 : 500,
+                        fontWeight: selected ? 700 : 500,
                         fontSize: "0.9rem",
-                        color: selected ? "primary.main" : "text.primary",
                       },
                     },
                   }}
@@ -139,52 +140,30 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               selected={pathname === "/account"}
               sx={{
                 borderRadius: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                bgcolor: "background.default",
+                border: "1px solid rgba(255,255,255,0.1)",
+                bgcolor: "rgba(255,255,255,0.04)",
                 py: 1.5,
-                "&.Mui-selected": {
-                  bgcolor: "action.selected",
-                  borderColor: "primary.main",
-                },
+                color: "#e2e8f0",
+                "&.Mui-selected": { bgcolor: "rgba(99, 102, 241, 0.2)" },
               }}
             >
               <ListItemIcon sx={{ minWidth: 44 }}>
-                <UserAvatar
-                  name={profile.user.name}
-                  avatarUrl={profile.user.avatar_url}
-                  size={36}
-                />
+                <UserAvatar name={profile.user.name} avatarUrl={profile.user.avatar_url} size={36} />
               </ListItemIcon>
               <ListItemText
                 primary={profile.user.name}
                 secondary={profile.company?.company_name ?? profile.user.email}
                 slotProps={{
-                  primary: {
-                    noWrap: true,
-                    sx: { fontWeight: 600, fontSize: "0.875rem" },
-                  },
-                  secondary: {
-                    noWrap: true,
-                    sx: { fontSize: "0.75rem" },
-                  },
+                  primary: { noWrap: true, sx: { fontWeight: 600, fontSize: "0.875rem", color: "white" } },
+                  secondary: { noWrap: true, sx: { fontSize: "0.75rem", color: "#94a3b8" } },
                 }}
               />
-              <SettingsOutlinedIcon sx={{ fontSize: 18, color: "text.disabled" }} />
             </ListItemButton>
           </Box>
         )}
       </Drawer>
 
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
+      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <Box
           component="header"
           sx={{
@@ -201,7 +180,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             zIndex: 10,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
             {pageTitle}
           </Typography>
           {profile && (
@@ -213,16 +192,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 sx={{ display: { xs: "none", sm: "flex" } }}
               />
               <Tooltip title="Account menu">
-                <IconButton
-                  onClick={(e) => setMenuAnchor(e.currentTarget)}
-                  size="small"
-                  aria-label="Account menu"
-                >
-                  <UserAvatar
-                    name={profile.user.name}
-                    avatarUrl={profile.user.avatar_url}
-                    size={32}
-                  />
+                <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} size="small" aria-label="Account menu">
+                  <UserAvatar name={profile.user.name} avatarUrl={profile.user.avatar_url} size={32} />
                 </IconButton>
               </Tooltip>
               <Menu
@@ -241,15 +212,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     {profile.user.email}
                   </Typography>
                 </Box>
-                <MenuItem
-                  component={Link}
-                  href="/account"
-                  onClick={() => setMenuAnchor(null)}
-                >
+                <MenuItem component={Link} href="/account" onClick={() => setMenuAnchor(null)}>
                   <ListItemIcon>
                     <PersonOutlinedIcon fontSize="small" />
                   </ListItemIcon>
-                  Account settings
+                  Account
                 </MenuItem>
                 <MenuItem
                   onClick={() => {

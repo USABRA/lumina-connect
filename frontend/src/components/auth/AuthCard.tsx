@@ -1,9 +1,12 @@
 "use client";
 
+import NfcIcon from "@mui/icons-material/Nfc";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
+
+import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
 
 export default function AuthCard({
   title,
@@ -23,8 +26,8 @@ export default function AuthCard({
         justifyContent: "center",
         p: 2,
         background: `
-          radial-gradient(ellipse 80% 60% at 50% -10%, rgba(79, 70, 229, 0.15), transparent),
-          linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)
+          radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99, 102, 241, 0.2), transparent),
+          linear-gradient(180deg, #0f172a 0%, #1e293b 100%)
         `,
       }}
     >
@@ -32,26 +35,27 @@ export default function AuthCard({
         <Box sx={{ textAlign: "center", mb: 3 }}>
           <Box
             sx={{
-              width: 48,
-              height: 48,
+              width: 52,
+              height: 52,
               borderRadius: 2.5,
-              background: "linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%)",
+              background: "linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               color: "white",
-              fontWeight: 800,
-              fontSize: "1.25rem",
               mb: 1.5,
             }}
           >
-            L
+            <NfcIcon sx={{ fontSize: 28 }} />
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Lumina Connect
+          <Typography variant="h6" sx={{ fontWeight: 800, color: "white" }}>
+            {APP_NAME}
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#94a3b8" }}>
+            {APP_TAGLINE}
           </Typography>
         </Box>
-        <Card>
+        <Card sx={{ bgcolor: "background.paper" }}>
           <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
               {title}

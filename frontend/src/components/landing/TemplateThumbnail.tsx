@@ -14,6 +14,22 @@ export default function TemplateThumbnail({
 }) {
   const border = selected ? accent : "#e2e8f0";
 
+  if (templateId === "nfc_card") {
+    return (
+      <Box sx={{ border: `2px solid ${border}`, borderRadius: 1.5, overflow: "hidden", bgcolor: "#fff" }}>
+        <Box sx={{ height: 36, background: `linear-gradient(135deg, ${accent}, #1e293b)` }} />
+        <Box sx={{ p: 1, mt: -1.5 }}>
+          <Box sx={{ mx: "auto", width: 16, height: 16, borderRadius: "50%", bgcolor: "#fff", mb: 0.5 }} />
+          <Box sx={{ height: 4, width: "50%", bgcolor: "#cbd5e1", borderRadius: 1, mx: "auto", mb: 0.5 }} />
+          <Box sx={{ height: 3, width: "35%", bgcolor: "#e2e8f0", borderRadius: 1, mx: "auto", mb: 1 }} />
+          {[1, 2, 3].map((i) => (
+            <Box key={i} sx={{ height: 8, bgcolor: "#f8fafc", borderRadius: 0.5, border: "1px solid #e2e8f0", mb: 0.4 }} />
+          ))}
+        </Box>
+      </Box>
+    );
+  }
+
   if (templateId === "showcase") {
     return (
       <Box sx={{ border: `2px solid ${border}`, borderRadius: 1.5, overflow: "hidden", bgcolor: "#fff" }}>

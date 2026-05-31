@@ -2,7 +2,14 @@
 
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import ChatOutlinedIcon from "@mui/icons-material/ChatOutlined";
+import ContactPageOutlinedIcon from "@mui/icons-material/ContactPageOutlined";
+import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
+import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
+import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
+import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
@@ -13,6 +20,8 @@ import Typography from "@mui/material/Typography";
 import LeadForm from "@/components/landing/LeadForm";
 import type { LandingBlock } from "@/lib/landingBlocks";
 import type { LandingPreviewData } from "@/lib/landingTemplates";
+import { getContactVcardUrl } from "@/lib/api";
+import { normalizeLinkedInUrl, whatsappHref } from "@/lib/vcard";
 
 const LEGACY_TEMPLATES: Record<string, string> = {
   classic: "showcase",
@@ -408,6 +417,228 @@ function PageMediaCenter({ product, color, headline, embedUrl, preview, compact 
   );
 }
 
+function PageNfcCard({ product, color, headline, preview, compact }: PageProps) {
+  const jobTitle = product.highlight_1 || "";
+  const phone = product.highlight_2 || "";
+  const email = product.highlight_3 || "";
+  const website = product.brand_website || "";
+  const meetingUrl = product.meeting_url || "";
+  const pdfUrl = product.pdf_url || "";
+  const photoUrl = product.hero_image_url || "";
+  const linkedinRaw = product.linkedin_url || "";
+  const linkedinUrl = linkedinRaw ? normalizeLinkedInUrl(linkedinRaw) : "";
+  const whatsappNumber = product.whatsapp || "";
+  const contactVcardUrl =
+    product.unique_code && product.unique_code !== "PREVIEW"
+      ? getContactVcardUrl(product.unique_code)
+      : undefined;
+
+  const actions = [
+    phone && { label: "Call", href: `tel:${phone.replace(/\s/g, "")}`, icon: PhoneOutlinedIcon },
+    email && { label: "Email", href: `mailto:${email}`, icon: EmailOutlinedIcon },
+    whatsappNumber && {
+      label: "WhatsApp",
+      href: whatsappHref(whatsappNumber, `Hi ${headline}, I got your card.`),
+      icon: ChatOutlinedIcon,
+    },
+    linkedinUrl && { label: "LinkedIn", href: linkedinUrl, icon: WorkOutlineOutlinedIcon },
+    meetingUrl && { label: "Book meeting", href: meetingUrl, icon: CalendarMonthOutlinedIcon },
+    website && { label: "Website", href: website.startsWith("http") ? website : `https://${website}`, icon: LanguageOutlinedIcon },
+  ].filter(Boolean) as { label: string; href: string; icon: typeof PhoneOutlinedIcon }[];
+
+  const canSaveContact = Boolean(headline && (phone || email));
+
+  const isEmbedded = compact || preview;
+
+  return (
+    <Box
+      sx={{
+        minHeight: isEmbedded ? "auto" : "100vh",
+        bgcolor: "#f8fafc",
+        display: "flex",
+        alignItems: isEmbedded ? "flex-start" : "center",
+        justifyContent: isEmbedded ? "flex-start" : "center",
+        py: isEmbedded ? 0 : 4,
+        px: isEmbedded ? 0 : 2,
+      }}
+    >
+      <Paper
+        elevation={isEmbedded ? 0 : 4}
+        sx={{
+          width: "100%",
+          maxWidth: isEmbedded ? "100%" : 420,
+          borderRadius: isEmbedded ? 0 : 3,
+          overflow: "hidden",
+          border: isEmbedded ? "none" : "none",
+          borderColor: "divider",
+        }}
+      >
+        <Box
+          sx={{
+            background: `linear-gradient(135deg, ${color} 0%, #1e293b 100%)`,
+            color: "white",
+            px: 3,
+            pt: 3,
+            pb: photoUrl ? 6 : 5,
+            textAlign: "center",
+            position: "relative",
+          }}
+        >
+          {product.logo_url && !photoUrl && (
+            <Box
+              sx={{
+                width: compact ? 56 : 72,
+                height: compact ? 56 : 72,
+                borderRadius: "50%",
+                bgcolor: "white",
+                mx: "auto",
+                mb: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                border: "3px solid rgba(255,255,255,0.35)",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={product.logo_url} alt="" style={{ maxWidth: "80%", maxHeight: "80%" }} />
+            </Box>
+          )}
+          {photoUrl && (
+            <Box
+              sx={{
+                width: compact ? 88 : 104,
+                height: compact ? 88 : 104,
+                borderRadius: "50%",
+                mx: "auto",
+                mb: 2,
+                overflow: "hidden",
+                border: "4px solid rgba(255,255,255,0.85)",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </Box>
+          )}
+          {product.logo_url && photoUrl && (
+            <Box
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                bgcolor: "white",
+                mx: "auto",
+                mb: 1.5,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                border: "2px solid rgba(255,255,255,0.35)",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={product.logo_url} alt="" style={{ maxWidth: "75%", maxHeight: "75%" }} />
+            </Box>
+          )}
+          <Typography variant={compact ? "h6" : "h4"} sx={{ fontWeight: 800, letterSpacing: "-0.02em" }}>
+            {headline}
+          </Typography>
+          {jobTitle && (
+            <Typography variant="body1" sx={{ mt: 0.5, opacity: 0.92 }}>
+              {jobTitle}
+            </Typography>
+          )}
+          <Typography variant="body2" sx={{ mt: 1, opacity: 0.75 }}>
+            {product.company_name}
+          </Typography>
+        </Box>
+
+        <Box sx={{ px: 3, py: 3, mt: -2 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
+              borderRadius: 2,
+              bgcolor: "background.paper",
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            {product.landing_description && (
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mb: 2.5 }}>
+                {product.landing_description}
+              </Typography>
+            )}
+
+            {canSaveContact && (
+              <Button
+                variant="contained"
+                fullWidth
+                component={preview || !contactVcardUrl ? "button" : "a"}
+                href={preview || !contactVcardUrl ? undefined : contactVcardUrl}
+                disabled={preview || !contactVcardUrl}
+                startIcon={<ContactPageOutlinedIcon />}
+                sx={{
+                  mb: 1.5,
+                  py: 1.25,
+                  bgcolor: color,
+                  "&:hover": { bgcolor: color, filter: "brightness(0.92)" },
+                }}
+              >
+                Add to contacts
+              </Button>
+            )}
+
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+              {actions.map(({ label, href, icon: Icon }) => (
+                <Button
+                  key={label}
+                  variant="outlined"
+                  fullWidth
+                  component={preview ? "button" : "a"}
+                  href={preview ? undefined : href}
+                  target={preview || label === "Call" || label === "Email" ? undefined : "_blank"}
+                  rel={preview ? undefined : "noopener"}
+                  startIcon={<Icon />}
+                  sx={{
+                    justifyContent: "flex-start",
+                    py: 1.25,
+                    borderColor: "divider",
+                    color: "text.primary",
+                    "&:hover": { borderColor: color, bgcolor: `${color}08` },
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
+              {pdfUrl && (
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  component={preview ? "button" : "a"}
+                  href={preview ? undefined : pdfUrl}
+                  target={preview ? undefined : "_blank"}
+                  rel={preview ? undefined : "noopener"}
+                  sx={{ mt: 0.5, py: 1.25, borderColor: "divider" }}
+                >
+                  Download profile
+                </Button>
+              )}
+            </Box>
+
+            {actions.length === 0 && !pdfUrl && !canSaveContact && (
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
+                Add phone, email or links in the card settings.
+              </Typography>
+            )}
+          </Paper>
+        </Box>
+      </Paper>
+    </Box>
+  );
+}
+
 function PageBrandStory({ product, color, headline, highlights, preview, compact }: PageProps) {
   return (
     <Box>
@@ -704,6 +935,8 @@ export default function LandingPageRenderer({
   const page =
     template === "custom" ? (
       <PageCustom product={product} color={color} preview={preview} compact={compact} />
+    ) : template === "nfc_card" ? (
+      <PageNfcCard {...props} />
     ) : template === "split" ? (
       <PageSplit {...props} />
     ) : template === "trade_show" ? (
@@ -719,10 +952,10 @@ export default function LandingPageRenderer({
   return (
     <Box>
       {page}
-      {!compact && (
+      {!compact && template !== "nfc_card" && (
         <Box sx={{ py: 3, textAlign: "center", bgcolor: "#f8fafc", borderTop: "1px solid", borderColor: "divider" }}>
           <Typography variant="caption" color="text.secondary">
-            Powered by Lumina Connect
+            Powered by Lumina Card
           </Typography>
         </Box>
       )}

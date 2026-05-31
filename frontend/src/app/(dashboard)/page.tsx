@@ -1,18 +1,20 @@
 "use client";
 
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
+import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import NfcIcon from "@mui/icons-material/Nfc";
+import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
-import QrCodeScannerOutlinedIcon from "@mui/icons-material/QrCodeScannerOutlined";
-import QrCode2OutlinedIcon from "@mui/icons-material/QrCode2Outlined";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import RadioButtonUncheckedOutlinedIcon from "@mui/icons-material/RadioButtonUncheckedOutlined";
+import TapAndPlayOutlinedIcon from "@mui/icons-material/TapAndPlayOutlined";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import Skeleton from "@mui/material/Skeleton";
+import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -22,47 +24,21 @@ import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
-import type {
-  AnalyticsOverview,
-  DashboardStats,
-  InteractionEvent,
-  LeadEvent,
-} from "@/lib/api";
+import { APP_TAGLINE } from "@/lib/branding";
+import type { CompanyBrand, DashboardStats, InteractionEvent } from "@/lib/api";
 
-const quickLinks = [
-  {
-    label: "New campaign",
-    description: "Launch a trade show or promo",
-    href: "/campaigns",
-    color: "#4f46e5",
-  },
-  {
-    label: "Generate QR codes",
-    description: "Create trackable products",
-    href: "/products",
-    color: "#0ea5e9",
-  },
-  {
-    label: "View leads",
-    description: "Contacts from landing forms",
-    href: "/leads",
-    color: "#10b981",
-  },
-  {
-    label: "View analytics",
-    description: "Scans, leads & conversion",
-    href: "/analytics",
-    color: "#6366f1",
-  },
+const setupSteps = [
+  { label: "Configure brand kit", href: "/settings", key: "brand" as const },
+  { label: "Add first team card", href: "/products", key: "card" as const },
+  { label: "Program NFC or share QR", href: "/products", key: "nfc" as const },
 ];
 
 export default function DashboardPage() {
   const { profile } = useAuth();
   const { request } = useApi();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
-  const [recentScans, setRecentScans] = useState<InteractionEvent[]>([]);
-  const [recentLeads, setRecentLeads] = useState<LeadEvent[]>([]);
+  const [brand, setBrand] = useState<CompanyBrand | null>(null);
+  const [recentTaps, setRecentTaps] = useState<InteractionEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const name = profile?.user.name?.split(" ")[0] ?? "there";
@@ -72,16 +48,14 @@ export default function DashboardPage() {
     (async () => {
       setLoading(true);
       try {
-        const [dash, anal, scans, leads] = await Promise.all([
+        const [dash, brandData, taps] = await Promise.all([
           request<DashboardStats>("/products/stats/dashboard"),
-          request<AnalyticsOverview>("/analytics/overview"),
+          request<CompanyBrand>("/companies/brand"),
           request<InteractionEvent[]>("/analytics/interactions?limit=5"),
-          request<LeadEvent[]>("/leads?limit=5"),
         ]);
         setStats(dash);
-        setOverview(anal);
-        setRecentScans(scans);
-        setRecentLeads(leads);
+        setBrand(brandData);
+        setRecentTaps(taps);
       } catch {
         setStats(null);
       } finally {
@@ -90,216 +64,145 @@ export default function DashboardPage() {
     })();
   }, [request]);
 
-  const greeting = (() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
-  })();
+  const hasBrand = Boolean(brand?.brand_logo_url || brand?.brand_tagline);
+  const hasCards = (stats?.products_tracked ?? 0) > 0;
+  const completed = {
+    brand: hasBrand,
+    card: hasCards,
+    nfc: hasCards && (stats?.total_interactions ?? 0) > 0,
+  };
 
   return (
     <Box>
       <PageHeader
-        title={`${greeting}, ${name}`}
-        subtitle={
-          company
-            ? `Here's how ${company} is performing across campaigns and products.`
-            : "Track scans, leads, and campaign performance in one place."
+        title={`Welcome, ${name}`}
+        subtitle={company ? `${company} · ${APP_TAGLINE}` : APP_TAGLINE}
+        action={
+          <Button component={Link} href="/products" variant="contained" startIcon={<NfcIcon />}>
+            Add team member
+          </Button>
         }
       />
 
+      <Paper
+        sx={{
+          p: 3,
+          mb: 3,
+          borderRadius: 3,
+          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #312e81 100%)",
+          color: "white",
+        }}
+      >
+        <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>
+          NFC cards for your whole team
+        </Typography>
+        <Typography sx={{ opacity: 0.85, maxWidth: 560, mb: 2.5 }}>
+          Set your brand once, add each person&apos;s name and role, then program the chip or print the QR.
+          Every tap opens their digital business card.
+        </Typography>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Button component={Link} href="/settings" variant="contained" sx={{ bgcolor: "white", color: "#0f172a", "&:hover": { bgcolor: "#f1f5f9" } }}>
+            Brand kit
+          </Button>
+          <Button component={Link} href="/products" variant="outlined" sx={{ borderColor: "rgba(255,255,255,0.4)", color: "white" }}>
+            Team cards
+          </Button>
+        </Box>
+      </Paper>
+
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
-            label="Active Campaigns"
-            value={stats?.active_campaigns ?? 0}
-            icon={CampaignOutlinedIcon}
-            color="#4f46e5"
-            loading={loading}
-          />
+          <StatCard label="Team cards" value={stats?.products_tracked ?? 0} icon={NfcIcon} color="#6366f1" loading={loading} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <StatCard label="Total taps" value={stats?.total_interactions ?? 0} icon={TapAndPlayOutlinedIcon} color="#0ea5e9" loading={loading} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+          <StatCard label="Contacts saved" value={stats?.leads_captured ?? 0} icon={PeopleOutlinedIcon} color="#10b981" loading={loading} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
-            label="Products Tracked"
+            label="Active cards"
             value={stats?.products_tracked ?? 0}
-            icon={QrCode2OutlinedIcon}
-            color="#0ea5e9"
-            loading={loading}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
-            label="Total Scans"
-            value={stats?.total_interactions ?? 0}
-            icon={QrCodeScannerOutlinedIcon}
+            icon={PaletteOutlinedIcon}
             color="#8b5cf6"
             loading={loading}
-            hint={overview ? `${overview.scans_today} today` : undefined}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
-            label="Leads Captured"
-            value={stats?.leads_captured ?? 0}
-            icon={PeopleOutlinedIcon}
-            color="#10b981"
-            loading={loading}
-            hint={
-              overview ? `${overview.conversion_rate}% conversion` : undefined
-            }
+            hint={hasBrand ? "Brand configured" : "Brand kit pending"}
           />
         </Grid>
       </Grid>
 
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, md: 5 }}>
-          <ContentCard title="Quick actions">
+          <ContentCard title="Get started">
             <List disablePadding>
-              {quickLinks.map((item) => (
-                <ListItem
-                  key={item.href}
-                  component={Link}
-                  href={item.href}
-                  disableGutters
-                  sx={{
-                    px: 2.5,
-                    py: 1.5,
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
-                    textDecoration: "none",
-                    color: "inherit",
-                    transition: "background 0.15s",
-                    "&:last-child": { borderBottom: 0 },
-                    "&:hover": { bgcolor: "action.hover" },
-                  }}
-                >
-                  <Box
+              {setupSteps.map((step) => {
+                const done = completed[step.key];
+                return (
+                  <ListItem
+                    key={step.key}
+                    component={Link}
+                    href={step.href}
+                    disableGutters
                     sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      bgcolor: item.color,
-                      mr: 2,
-                      flexShrink: 0,
+                      px: 2.5,
+                      py: 1.5,
+                      borderBottom: "1px solid",
+                      borderColor: "divider",
+                      textDecoration: "none",
+                      color: "inherit",
+                      "&:last-child": { borderBottom: 0 },
+                      "&:hover": { bgcolor: "action.hover" },
                     }}
-                  />
-                  <ListItemText
-                    primary={item.label}
-                    secondary={item.description}
-                    slotProps={{
-                      primary: { sx: { fontWeight: 600, fontSize: "0.9rem" } },
-                    }}
-                  />
-                  <ArrowForwardIcon sx={{ fontSize: 18, color: "text.disabled" }} />
-                </ListItem>
-              ))}
+                  >
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      {done ? (
+                        <CheckCircleOutlinedIcon color="success" fontSize="small" />
+                      ) : (
+                        <RadioButtonUncheckedOutlinedIcon sx={{ color: "text.disabled" }} fontSize="small" />
+                      )}
+                    </ListItemIcon>
+                    <ListItemText primary={step.label} slotProps={{ primary: { sx: { fontWeight: 600 } } }} />
+                    <ArrowForwardIcon sx={{ fontSize: 18, color: "text.disabled" }} />
+                  </ListItem>
+                );
+              })}
             </List>
           </ContentCard>
-
-          {!loading && overview && overview.conversion_rate > 0 && (
-            <Box
-              sx={{
-                mt: 2.5,
-                p: 2.5,
-                borderRadius: 4,
-                background: "linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)",
-                color: "white",
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                <TrendingUpIcon sx={{ fontSize: 20 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, opacity: 0.9 }}>
-                  Conversion rate
-                </Typography>
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 700 }}>
-                {overview.conversion_rate}%
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.85, mt: 0.5 }}>
-                {overview.total_leads} leads from {overview.total_scans} scans
-              </Typography>
-            </Box>
-          )}
         </Grid>
 
         <Grid size={{ xs: 12, md: 7 }}>
           <ContentCard
-            title="Recent activity"
+            title="Recent taps"
             action={
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <Button component={Link} href="/leads" size="small" endIcon={<ArrowForwardIcon />}>
-                  Leads
-                </Button>
-                <Button component={Link} href="/analytics" size="small" endIcon={<ArrowForwardIcon />}>
-                  Analytics
-                </Button>
-              </Box>
+              <Button component={Link} href="/analytics" size="small" endIcon={<ArrowForwardIcon />}>
+                Insights
+              </Button>
             }
           >
-            {loading ? (
-              <Box sx={{ p: 2.5 }}>
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} height={48} sx={{ mb: 1 }} />
-                ))}
-              </Box>
-            ) : recentScans.length === 0 && recentLeads.length === 0 ? (
+            {recentTaps.length === 0 ? (
               <Box sx={{ p: 4, textAlign: "center" }}>
                 <Typography color="text.secondary" variant="body2">
-                  No activity yet. Share a QR code to start tracking scans.
+                  No taps yet. Share a card link or program an NFC tag to start tracking.
                 </Typography>
-                <Button
-                  component={Link}
-                  href="/products"
-                  variant="contained"
-                  size="small"
-                  sx={{ mt: 2 }}
-                >
-                  Create a product
+                <Button component={Link} href="/products" variant="contained" size="small" sx={{ mt: 2 }}>
+                  Create a card
                 </Button>
               </Box>
             ) : (
               <List disablePadding>
-                {recentScans.slice(0, 4).map((scan) => (
-                  <ListItem
-                    key={`scan-${scan.id}`}
-                    sx={{
-                      px: 2.5,
-                      py: 1.5,
-                      borderBottom: "1px solid",
-                      borderColor: "divider",
-                    }}
-                  >
+                {recentTaps.map((tap) => (
+                  <ListItem key={tap.id} sx={{ px: 2.5, py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}>
                     <ListItemText
                       primary={
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          Scan on{" "}
+                          Tap on{" "}
                           <Box component="span" sx={{ fontFamily: "monospace", color: "primary.main" }}>
-                            {scan.product_code}
+                            {tap.product_code}
                           </Box>
                         </Typography>
                       }
-                      secondary={`${scan.campaign_name} · ${new Date(scan.timestamp).toLocaleString()}`}
-                    />
-                  </ListItem>
-                ))}
-                {recentLeads.slice(0, 2).map((lead) => (
-                  <ListItem
-                    key={`lead-${lead.id}`}
-                    sx={{
-                      px: 2.5,
-                      py: 1.5,
-                      borderBottom: "1px solid",
-                      borderColor: "divider",
-                      "&:last-child": { borderBottom: 0 },
-                    }}
-                  >
-                    <ListItemText
-                      primary={
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          New lead: {lead.name}
-                        </Typography>
-                      }
-                      secondary={`${lead.email} · ${lead.product_code}`}
+                      secondary={`${tap.city ?? "Unknown"}, ${tap.country ?? "—"} · ${new Date(tap.timestamp).toLocaleString()}`}
                     />
                   </ListItem>
                 ))}

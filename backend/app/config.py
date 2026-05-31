@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = ""
     lead_notify_emails: str = ""
+    upload_dir: str = "uploads"
+    api_public_url: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:

@@ -24,6 +24,7 @@ export default function LandingPreview({
           overflow: "hidden",
           maxHeight: 520,
           overflowY: "auto",
+          bgcolor: "#f8fafc",
         }}
       >
         <LandingPageRenderer product={product} preview={preview} compact />

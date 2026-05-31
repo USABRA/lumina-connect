@@ -34,3 +34,5 @@ frontend/out/
 # Build / logs
 dist/
 *.log
+.vercel
+backend/uploads/

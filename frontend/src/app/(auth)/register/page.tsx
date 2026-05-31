@@ -43,7 +43,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthCard title="Create account" subtitle="Start tracking your physical products">
+    <AuthCard title="Create account" subtitle="Launch NFC business cards for your company">
       <FirebaseSetupAlert />
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -66,6 +66,7 @@ export default function RegisterPage() {
           margin="normal"
           value={companyName}
           onChange={(e) => setCompanyName(e.target.value)}
+          helperText="Your team's cards will show this brand"
         />
         <TextField
           label="Email"

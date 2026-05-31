@@ -2,16 +2,16 @@
 
 import { createTheme, alpha } from "@mui/material/styles";
 
-const primary = "#4f46e5";
-const primaryLight = "#6366f1";
+const primary = "#0f172a";
+const accent = "#6366f1";
 
 export const theme = createTheme({
   palette: {
     mode: "light",
     primary: {
-      main: primary,
-      light: primaryLight,
-      dark: "#4338ca",
+      main: accent,
+      light: "#818cf8",
+      dark: primary,
     },
     secondary: {
       main: "#0ea5e9",
@@ -118,8 +118,8 @@ export const theme = createTheme({
           margin: "2px 12px",
           padding: "10px 12px",
           "&.Mui-selected": {
-            backgroundColor: alpha(primary, 0.1),
-            "&:hover": { backgroundColor: alpha(primary, 0.14) },
+            backgroundColor: alpha(accent, 0.1),
+            "&:hover": { backgroundColor: alpha(accent, 0.14) },
           },
         },
       },

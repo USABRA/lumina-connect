@@ -44,7 +44,7 @@ function LeadTable({ leads }: { leads: LeadEvent[] }) {
             <TableCell>Name</TableCell>
             <TableCell>Contact</TableCell>
             <TableCell>Company</TableCell>
-            <TableCell>Product</TableCell>
+            <TableCell>Card</TableCell>
             <TableCell align="right">Actions</TableCell>
           </TableRow>
         </TableHead>
@@ -163,8 +163,8 @@ export default function LeadsPage() {
   return (
     <Box>
       <PageHeader
-        title="Leads"
-        subtitle="Contacts captured from landing page forms, organized by campaign."
+        title="Contacts"
+        subtitle="People who shared their info after tapping a team member's card."
         action={
           <Button
             variant="outlined"
@@ -267,11 +267,11 @@ export default function LeadsPage() {
         <ContentCard noPadding>
           <EmptyState
             icon={PeopleOutlinedIcon}
-            title="No leads yet"
-            description="When visitors submit contact forms on your product landing pages, they'll appear here grouped by campaign."
+            title="No contacts yet"
+            description="When someone fills a contact form on a card, they'll appear here."
             action={
               <Button component={Link} href="/products" variant="contained">
-                Manage products
+                Add team card
               </Button>
             }
           />

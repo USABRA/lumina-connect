@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
@@ -7,7 +10,7 @@ from app.config import settings
 from app.database import engine, get_db
 from app.services.db_stats import get_db_stats
 
-from app.routers import analytics, auth, campaigns, leads, products, tracking
+from app.routers import analytics, auth, campaigns, companies, leads, products, tracking, uploads
 
 app = FastAPI(
     title="Lumina Connect API",
@@ -24,11 +27,17 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(companies.router)
 app.include_router(campaigns.router)
 app.include_router(products.router)
 app.include_router(tracking.router)
 app.include_router(analytics.router)
 app.include_router(leads.router)
+app.include_router(uploads.router)
+
+upload_path = Path(settings.upload_dir)
+upload_path.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(upload_path)), name="uploads")
 
 
 @app.get("/health")

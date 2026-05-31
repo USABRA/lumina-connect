@@ -41,7 +41,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthCard title="Sign in" subtitle="Access your Lumina Connect dashboard">
+    <AuthCard title="Sign in" subtitle="Manage your team's NFC business cards">
       <FirebaseSetupAlert />
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
