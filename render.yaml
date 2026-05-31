@@ -14,9 +14,12 @@ services:
         fromDatabase:
           name: lumina-db
           property: connectionString
+      # Production Vercel — override in dashboard if URL changes; see RENDER_ALIGN.md
       - key: CORS_ORIGINS
+        value: https://lumina-connect-eight.vercel.app
         sync: false
       - key: LANDING_BASE_URL
+        value: https://lumina-connect-eight.vercel.app/p
         sync: false
       - key: FIREBASE_PROJECT_ID
         sync: false

@@ -29,8 +29,10 @@ Guia passo a passo para colocar o MVP em produção.
 |------|--------|
 | Firebase `project_id` | `lumina-connect-ed8ca` |
 | `authDomain` (público) | `lumina-connect-ed8ca.firebaseapp.com` |
-| API Render (exemplo) | `https://lumina-api-g99a.onrender.com` |
-| Frontend Vercel | URL `https://seu-app.vercel.app` (copie em Vercel → Domains) |
+| API Render (produção) | `https://lumina-api-g99a.onrender.com` |
+| Frontend Vercel (produção) | `https://lumina-connect-eight.vercel.app` |
+
+**Alinhamento Render (copy-paste):** [RENDER_ALIGN.md](./RENDER_ALIGN.md)
 
 ---
 
@@ -59,7 +61,7 @@ Se `firebase_configured` for `false`, a API ainda está em **auth local** — lo
 3. **Authentication → Settings → Authorized domains** → adicione:
    - `localhost` (dev)
    - `lumina-connect-ed8ca.firebaseapp.com` (já vem por padrão)
-   - **Domínio exato do Vercel**, ex.: `lumina-connect.vercel.app` (sem `https://`, sem `/`)
+   - **Domínio exato do Vercel**, ex.: `lumina-connect-eight.vercel.app` (sem `https://`, sem `/`)
    - Domínio customizado, se usar (ex.: `app.seudominio.com`)
 4. **Project settings → General → Your apps → Web** → copie os campos para o Vercel (nomes abaixo; **não** commite chaves no Git)
 5. **Project settings → Service accounts → Generate new private key** → JSON para o Render (campos `project_id`, `client_email`, `private_key`)
