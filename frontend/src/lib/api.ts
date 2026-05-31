@@ -448,6 +448,22 @@ export async function meetingHeartbeat(
   });
 }
 
+export type InteractionEvent = {
+  id: number;
+  timestamp: string;
+  product_code: string;
+  product_type: string;
+  campaign_name: string;
+  city: string | null;
+  country: string | null;
+  device_type: string | null;
+  ip_address: string | null;
+  team_role_id?: string | null;
+  team_role_name?: string | null;
+  team_group_name?: string | null;
+  event_tag?: string | null;
+};
+
   id: number;
   timestamp: string;
   product_code: string;
