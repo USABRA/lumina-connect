@@ -99,13 +99,11 @@ def _notes_content(meeting: MeetingSession) -> dict[str, str]:
 
 
 def _session_summary(meeting: MeetingSession, db: Session) -> MeetingSessionSummary:
-    participant_count = len(meeting.participants) if meeting.participants else (
-        db.query(MeetingSession).filter(MeetingSession.id == meeting.id).count()
-    )
-    # reload participant count properly
     from app.models.meeting import MeetingParticipant
 
-    participant_count = db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == meeting.id).count()
+    participant_count = (
+        db.query(MeetingParticipant).filter(MeetingParticipant.meeting_id == meeting.id).count()
+    )
     has_report = db.query(MeetingReport).filter(MeetingReport.meeting_id == meeting.id).count() > 0
     host = meeting.host
     return MeetingSessionSummary(

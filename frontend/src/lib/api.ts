@@ -322,7 +322,132 @@ export type MeetingsListResponse = {
   events: MeetingEvent[];
 };
 
-export type InteractionEvent = {
+export type MeetingSessionSummary = {
+  id: number;
+  title: string;
+  scheduled_at: string | null;
+  share_token: string;
+  status: "draft" | "live" | "closed";
+  event_tag: string | null;
+  product_id: number | null;
+  host_user_id: number;
+  host_name: string;
+  created_at: string;
+  participant_count: number;
+  has_report: boolean;
+};
+
+export type MeetingReportSummary = {
+  id: number;
+  meeting_id: number;
+  meeting_title: string;
+  generated_at: string;
+};
+
+export type MeetingSessionsListResponse = {
+  sessions: MeetingSessionSummary[];
+  reports: MeetingReportSummary[];
+};
+
+export type MeetingSessionDetail = MeetingSessionSummary & {
+  join_url_path: string;
+  notes: MeetingNotesContent;
+  notes_updated_at: string | null;
+};
+
+export type MeetingNotesContent = {
+  discussed: string;
+  decisions: string;
+  action_items: string;
+  next_steps: string;
+};
+
+export type MeetingParticipantInfo = {
+  id: number;
+  name: string;
+  email: string | null;
+  company: string | null;
+  is_active: boolean;
+};
+
+export type MeetingRoomState = {
+  meeting_id: number;
+  title: string;
+  status: "draft" | "live" | "closed";
+  scheduled_at: string | null;
+  event_tag: string | null;
+  notes: MeetingNotesContent;
+  notes_updated_at: string | null;
+  participants: MeetingParticipantInfo[];
+};
+
+export type MeetingJoinResponse = {
+  session_id: string;
+  participant_id: number;
+  meeting_title: string;
+  meeting_status: string;
+  scheduled_at: string | null;
+};
+
+export type MeetingReportDetail = {
+  id: number;
+  meeting_id: number;
+  generated_at: string;
+  content_markdown: string;
+  content_json: Record<string, unknown>;
+};
+
+export const MEETING_NOTE_SECTIONS: { key: keyof MeetingNotesContent; label: string }[] = [
+  { key: "discussed", label: "What we discussed" },
+  { key: "decisions", label: "Decisions made" },
+  { key: "action_items", label: "Action items (who / what / when)" },
+  { key: "next_steps", label: "Next steps" },
+];
+
+export function meetingJoinUrl(shareToken: string): string {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/meetings/join/${shareToken}`;
+  }
+  return `/meetings/join/${shareToken}`;
+}
+
+export async function getMeetingRoom(token: string): Promise<MeetingRoomState> {
+  return apiFetch<MeetingRoomState>(`/meetings/join/${encodeURIComponent(token)}`);
+}
+
+export async function joinMeetingRoom(
+  token: string,
+  data: { name: string; email?: string; company?: string }
+): Promise<MeetingJoinResponse> {
+  return apiFetch<MeetingJoinResponse>(`/meetings/join/${encodeURIComponent(token)}/join`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateMeetingNotes(
+  token: string,
+  participantSession: string,
+  section: keyof MeetingNotesContent,
+  content: string
+): Promise<{ notes: MeetingNotesContent; notes_updated_at: string }> {
+  return apiFetch(`/meetings/join/${encodeURIComponent(token)}/notes`, {
+    method: "PATCH",
+    headers: { "X-Participant-Session": participantSession },
+    body: JSON.stringify({ section, content }),
+  });
+}
+
+export async function meetingHeartbeat(
+  token: string,
+  participantSession: string
+): Promise<void> {
+  await apiFetch(`/meetings/join/${encodeURIComponent(token)}/heartbeat`, {
+    method: "POST",
+    headers: { "X-Participant-Session": participantSession },
+  });
+}
+
   id: number;
   timestamp: string;
   product_code: string;
