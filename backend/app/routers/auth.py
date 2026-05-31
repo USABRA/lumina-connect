@@ -3,11 +3,13 @@ from __future__ import annotations
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user_flexible
 from app.auth.firebase import verify_id_token
+from app.auth.jwt_tokens import create_access_token
+from app.auth.passwords import hash_password, verify_password
 from app.config import settings
 from app.database import get_db
 from app.enums import SubscriptionPlan, UserRole
@@ -34,7 +36,27 @@ class AuthMeResponse(BaseModel):
 
 class AuthStatusResponse(BaseModel):
     firebase_configured: bool
+    local_auth_enabled: bool
     message: str
+
+
+class AuthRegisterRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    email: EmailStr
+    password: str = Field(min_length=6, max_length=128)
+    company_name: str = Field(min_length=1, max_length=255)
+
+
+class AuthLoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
+
+
+class AuthTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserRead
+    company: Optional[CompanyRead] = None
 
 
 def _get_bearer_token(authorization: Annotated[Optional[str], Header()] = None) -> str:
@@ -51,12 +73,92 @@ def auth_status() -> AuthStatusResponse:
     if settings.firebase_configured:
         return AuthStatusResponse(
             firebase_configured=True,
+            local_auth_enabled=False,
             message="Firebase Auth is configured",
         )
     return AuthStatusResponse(
         firebase_configured=False,
-        message="Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY in backend/.env",
+        local_auth_enabled=True,
+        message="Local email/password auth is enabled. Set Firebase env vars to use Firebase instead.",
     )
+
+
+def _build_auth_response(user: User, company: Company | None) -> AuthTokenResponse:
+    return AuthTokenResponse(
+        access_token=create_access_token(user.id),
+        user=UserRead.model_validate(user),
+        company=CompanyRead.model_validate(company) if company else None,
+    )
+
+
+def _require_local_auth() -> None:
+    if settings.firebase_configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Local auth is disabled when Firebase is configured",
+        )
+
+
+@router.post("/register", response_model=AuthTokenResponse)
+def register_user(
+    body: AuthRegisterRequest,
+    db: Annotated[Session, Depends(get_db)],
+) -> AuthTokenResponse:
+    _require_local_auth()
+
+    existing = db.query(User).filter(User.email == body.email.lower()).one_or_none()
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists",
+        )
+
+    company = Company(
+        company_name=body.company_name,
+        subscription_plan=SubscriptionPlan.FREE,
+    )
+    db.add(company)
+    db.flush()
+
+    user = User(
+        name=body.name,
+        email=body.email.lower(),
+        password_hash=hash_password(body.password),
+        company_id=company.id,
+        role=UserRole.ADMIN,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return _build_auth_response(user, company)
+
+
+@router.post("/login", response_model=AuthTokenResponse)
+def login_user(
+    body: AuthLoginRequest,
+    db: Annotated[Session, Depends(get_db)],
+) -> AuthTokenResponse:
+    _require_local_auth()
+
+    user = db.query(User).filter(User.email == body.email.lower()).one_or_none()
+    if user is None or not user.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    if not verify_password(body.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    company = None
+    if user.company_id:
+        company = db.query(Company).filter(Company.id == user.company_id).one_or_none()
+
+    return _build_auth_response(user, company)
 
 
 @router.post("/sync", response_model=AuthMeResponse)
@@ -110,7 +212,7 @@ def sync_user(
                 name=body.name,
                 email=email,
                 company_id=company.id,
-                role=UserRole.COMPANY_USER,
+                role=UserRole.ADMIN,
             )
             db.add(user)
 

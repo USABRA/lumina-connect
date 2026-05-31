@@ -104,6 +104,11 @@ export type CompanyMember = {
   avatar_url?: string | null;
 };
 
+export type CompanyMemberCreateResponse = CompanyMember & {
+  temporary_password?: string | null;
+  login_hint?: string | null;
+};
+
 export type ProductPublic = {
   unique_code: string;
   product_type: string;
@@ -464,21 +469,6 @@ export type InteractionEvent = {
   event_tag?: string | null;
 };
 
-  id: number;
-  timestamp: string;
-  product_code: string;
-  product_type: string;
-  campaign_name: string;
-  city: string | null;
-  country: string | null;
-  device_type: string | null;
-  ip_address: string | null;
-  team_role_id?: string | null;
-  team_role_name?: string | null;
-  team_group_name?: string | null;
-  event_tag?: string | null;
-};
-
 export async function apiFetch<T>(
   path: string,
   options: RequestInit & { token?: string } = {}
@@ -536,6 +526,33 @@ export async function syncUser(
 
 export async function getMe(token?: string): Promise<UserProfile> {
   return apiFetch<UserProfile>("/auth/me", { token });
+}
+
+export type AuthTokenResponse = UserProfile & {
+  access_token: string;
+  token_type: string;
+};
+
+export async function registerUser(data: {
+  name: string;
+  email: string;
+  password: string;
+  company_name: string;
+}): Promise<AuthTokenResponse> {
+  return apiFetch<AuthTokenResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function loginUser(data: {
+  email: string;
+  password: string;
+}): Promise<AuthTokenResponse> {
+  return apiFetch<AuthTokenResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export class ProductUnavailableError extends Error {

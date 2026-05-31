@@ -7,14 +7,14 @@ import MarketingPage from "@/components/marketing/MarketingPage";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function HomePage() {
-  const { firebaseUser, loading, firebaseReady } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (firebaseReady && !loading && firebaseUser) {
+    if (!loading && isAuthenticated) {
       router.replace("/dashboard");
     }
-  }, [firebaseReady, loading, firebaseUser, router]);
+  }, [loading, isAuthenticated, router]);
 
   return <MarketingPage />;
 }

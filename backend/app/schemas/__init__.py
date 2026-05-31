@@ -152,6 +152,18 @@ class CompanyMemberRead(BaseModel):
     avatar_url: Optional[str] = None
 
 
+class CompanyMemberCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    email: EmailStr
+    role: UserRole = UserRole.COMPANY_USER
+    password: Optional[str] = Field(default=None, min_length=6, max_length=128)
+
+
+class CompanyMemberCreateResponse(CompanyMemberRead):
+    temporary_password: Optional[str] = None
+    login_hint: Optional[str] = None
+
+
 class LandingPageUpdate(BaseModel):
     landing_headline: Optional[str] = Field(default=None, max_length=255)
     landing_description: Optional[str] = None

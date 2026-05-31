@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     firebase_project_id: str = ""
     firebase_client_email: str = ""
     firebase_private_key: str = ""
+    jwt_secret_key: str = "dev-secret-change-in-production-use-32-chars-min"
     landing_base_url: str = "http://localhost:3000/p"
 
     smtp_host: str = ""

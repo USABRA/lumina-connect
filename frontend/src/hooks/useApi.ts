@@ -6,22 +6,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch, uploadImage as uploadImageApi } from "@/lib/api";
 
 export function useApi() {
-  const { firebaseUser } = useAuth();
+  const { getAccessToken } = useAuth();
 
   const request = useCallback(
     async <T,>(path: string, options: RequestInit = {}): Promise<T> => {
-      const token = firebaseUser ? await firebaseUser.getIdToken() : undefined;
+      const token = await getAccessToken();
       return apiFetch<T>(path, { ...options, token });
     },
-    [firebaseUser]
+    [getAccessToken]
   );
 
   const uploadImage = useCallback(
     async (file: File): Promise<string> => {
-      const token = firebaseUser ? await firebaseUser.getIdToken() : undefined;
+      const token = await getAccessToken();
       return uploadImageApi(file, token);
     },
-    [firebaseUser]
+    [getAccessToken]
   );
 
   return { request, uploadImage };

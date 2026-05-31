@@ -20,7 +20,7 @@ import type { UserProfile } from "@/lib/api";
 const MAX_AVATAR_BYTES = 500_000;
 
 export default function AccountPage() {
-  const { profile, logout, refreshProfile, firebaseReady } = useAuth();
+  const { profile, logout, refreshProfile } = useAuth();
   const { request } = useApi();
   const [name, setName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -174,9 +174,7 @@ export default function AccountPage() {
         <ContentCard title="Session">
           <Box sx={{ p: 2.5 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {firebaseReady
-                ? `Sign out of ${APP_NAME} on this device.`
-                : "Dev mode — sign out returns to the login screen."}
+              Sign out of {APP_NAME} on this device.
             </Typography>
             <Button
               variant="outlined"

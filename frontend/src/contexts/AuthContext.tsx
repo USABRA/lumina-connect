@@ -19,7 +19,14 @@ import {
   useState,
 } from "react";
 
-import { getMe, syncUser, type UserProfile } from "@/lib/api";
+import {
+  getMe,
+  loginUser,
+  registerUser,
+  syncUser,
+  type UserProfile,
+} from "@/lib/api";
+import { clearStoredToken, getStoredToken, setStoredToken } from "@/lib/auth-token";
 import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
 
 type AuthContextValue = {
@@ -27,6 +34,8 @@ type AuthContextValue = {
   profile: UserProfile | null;
   loading: boolean;
   firebaseReady: boolean;
+  isAuthenticated: boolean;
+  getAccessToken: () => Promise<string | undefined>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (data: {
     name: string;
@@ -40,6 +49,33 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function mapFirebaseError(error: unknown): string {
+  const code =
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+      ? error.code
+      : "";
+
+  switch (code) {
+    case "auth/user-not-found":
+    case "auth/wrong-password":
+    case "auth/invalid-credential":
+      return "Invalid email or password";
+    case "auth/email-already-in-use":
+      return "An account with this email already exists";
+    case "auth/weak-password":
+      return "Password must be at least 6 characters";
+    case "auth/invalid-email":
+      return "Enter a valid email address";
+    case "auth/too-many-requests":
+      return "Too many attempts. Try again later.";
+    default:
+      return error instanceof Error ? error.message : "Authentication failed";
+  }
+}
 
 async function loadProfile(user: User): Promise<UserProfile> {
   const token = await user.getIdToken();
@@ -59,6 +95,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const firebaseReady = isFirebaseConfigured();
+  const isAuthenticated = Boolean(firebaseUser || profile);
+
+  const getAccessToken = useCallback(async (): Promise<string | undefined> => {
+    if (firebaseUser) {
+      return firebaseUser.getIdToken();
+    }
+    return getStoredToken() ?? undefined;
+  }, [firebaseUser]);
 
   const refreshProfile = useCallback(async () => {
     if (firebaseUser) {
@@ -73,19 +117,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return;
     }
-    if (!firebaseReady) {
-      const next = await getMe();
+
+    const token = getStoredToken();
+    if (token) {
+      const next = await getMe(token);
       setProfile(next);
     }
-  }, [firebaseUser, firebaseReady]);
+  }, [firebaseUser]);
 
   useEffect(() => {
     const auth = getFirebaseAuth();
     if (!auth) {
-      getMe()
-        .then(setProfile)
-        .catch(() => setProfile(null))
-        .finally(() => setLoading(false));
+      const token = getStoredToken();
+      if (token) {
+        getMe(token)
+          .then(setProfile)
+          .catch(() => {
+            clearStoredToken();
+            setProfile(null);
+          })
+          .finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
       return;
     }
 
@@ -107,14 +161,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe;
   }, [firebaseReady]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const auth = getFirebaseAuth();
-    if (!auth) throw new Error("Firebase is not configured");
-    const credential = await signInWithEmailAndPassword(auth, email, password);
-    const next = await loadProfile(credential.user);
-    setProfile(next);
-    router.push("/");
-  }, [router]);
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const auth = getFirebaseAuth();
+      if (auth) {
+        try {
+          const credential = await signInWithEmailAndPassword(auth, email, password);
+          const next = await loadProfile(credential.user);
+          setProfile(next);
+          router.push("/dashboard");
+          return;
+        } catch (error) {
+          throw new Error(mapFirebaseError(error));
+        }
+      }
+
+      try {
+        const result = await loginUser({ email, password });
+        setStoredToken(result.access_token);
+        setProfile({ user: result.user, company: result.company });
+        router.push("/dashboard");
+      } catch (error) {
+        throw new Error(error instanceof Error ? error.message : "Login failed");
+      }
+    },
+    [router]
+  );
 
   const signUp = useCallback(
     async (data: {
@@ -124,35 +196,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       companyName: string;
     }) => {
       const auth = getFirebaseAuth();
-      if (!auth) throw new Error("Firebase is not configured");
+      if (auth) {
+        try {
+          const credential = await createUserWithEmailAndPassword(
+            auth,
+            data.email,
+            data.password
+          );
+          await firebaseUpdateProfile(credential.user, { displayName: data.name });
 
-      const credential = await createUserWithEmailAndPassword(
-        auth,
-        data.email,
-        data.password
-      );
-      await firebaseUpdateProfile(credential.user, { displayName: data.name });
+          const token = await credential.user.getIdToken();
+          const next = await syncUser(token, {
+            name: data.name,
+            company_name: data.companyName,
+          });
+          setProfile(next);
+          router.push("/dashboard");
+          return;
+        } catch (error) {
+          throw new Error(mapFirebaseError(error));
+        }
+      }
 
-      const token = await credential.user.getIdToken();
-      const next = await syncUser(token, {
-        name: data.name,
-        company_name: data.companyName,
-      });
-      setProfile(next);
-      router.push("/");
+      try {
+        const result = await registerUser({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          company_name: data.companyName,
+        });
+        setStoredToken(result.access_token);
+        setProfile({ user: result.user, company: result.company });
+        router.push("/dashboard");
+      } catch (error) {
+        throw new Error(error instanceof Error ? error.message : "Registration failed");
+      }
     },
     [router]
   );
 
   const resetPassword = useCallback(async (email: string) => {
     const auth = getFirebaseAuth();
-    if (!auth) throw new Error("Firebase is not configured");
+    if (!auth) throw new Error("Password reset requires Firebase configuration");
     await sendPasswordResetEmail(auth, email);
   }, []);
 
   const logout = useCallback(async () => {
     const auth = getFirebaseAuth();
     if (auth) await signOut(auth);
+    clearStoredToken();
     setProfile(null);
     router.push("/login");
   }, [router]);
@@ -163,6 +255,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile,
       loading,
       firebaseReady,
+      isAuthenticated,
+      getAccessToken,
       signIn,
       signUp,
       resetPassword,
@@ -174,6 +268,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile,
       loading,
       firebaseReady,
+      isAuthenticated,
+      getAccessToken,
       signIn,
       signUp,
       resetPassword,

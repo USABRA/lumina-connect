@@ -12,9 +12,8 @@ export default function FirebaseSetupAlert() {
 
   return (
     <Box sx={{ mb: 2 }}>
-      <Alert severity="warning">
-        Firebase is not configured. Copy <code>frontend/.env.example</code> to{" "}
-        <code>.env.local</code> and add your Firebase web app credentials.
+      <Alert severity="info">
+        Running in local auth mode. Sign in with email and password — no Firebase setup required.
       </Alert>
     </Box>
   );

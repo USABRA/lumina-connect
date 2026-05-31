@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import Enum, ForeignKey, String
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base
+from app.database import Base, string_enum
 from app.enums import UserRole
 
 
@@ -18,10 +18,11 @@ class User(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
     company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("companies.id"), nullable=True)
     role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole, native_enum=False),
+        string_enum(UserRole),
         default=UserRole.COMPANY_USER,
         nullable=False,
     )

@@ -36,7 +36,7 @@ import { parseTeamStructure } from "@/lib/teamStructure";
 
 export default function AnalyticsPage() {
   const { request } = useApi();
-  const { firebaseUser, profile } = useAuth();
+  const { getAccessToken, profile } = useAuth();
   const teamStructure = parseTeamStructure(profile?.company?.team_structure);
   const hasTeamStructure = teamStructure.groups.length > 0 || teamStructure.roles.length > 0;
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
@@ -86,7 +86,7 @@ export default function AnalyticsPage() {
   async function handleExport() {
     setExporting(true);
     try {
-      const token = firebaseUser ? await firebaseUser.getIdToken() : undefined;
+      const token = await getAccessToken();
       await downloadAnalyticsExport(token);
     } catch {
       setError("Failed to export CSV");

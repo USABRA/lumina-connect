@@ -32,3 +32,27 @@ def verify_id_token(token: str) -> dict[str, Any]:
         raise RuntimeError("Firebase is not configured on the server")
     init_firebase()
     return auth.verify_id_token(token)
+
+
+def create_firebase_user(*, email: str, password: str, display_name: str) -> str:
+    """Create a Firebase Auth user; returns uid."""
+    if not settings.firebase_configured:
+        raise RuntimeError("Firebase is not configured on the server")
+    init_firebase()
+    record = auth.create_user(
+        email=email,
+        password=password,
+        display_name=display_name,
+    )
+    return record.uid
+
+
+def get_firebase_uid_by_email(email: str) -> str | None:
+    if not settings.firebase_configured:
+        return None
+    init_firebase()
+    try:
+        record = auth.get_user_by_email(email)
+    except auth.UserNotFoundError:
+        return None
+    return record.uid

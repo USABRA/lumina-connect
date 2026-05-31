@@ -142,7 +142,9 @@ export default function TeamOrganizationPage() {
 
       <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
         Cards are grouped by role on{" "}
-        <Link href="/products">Business cards</Link>. Create departments (e.g. Sales, Leadership) and roles (e.g. Account Executive, CEO) in any structure you want.
+        <Link href="/products">Business cards</Link>. Create departments (e.g. Sales, Leadership) and roles (e.g. Account Executive, CEO) in any structure you want.{" "}
+        To add employees to your company, go to{" "}
+        <Link href="/team/members">Team members</Link>.
       </Alert>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

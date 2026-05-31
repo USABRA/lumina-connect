@@ -14,7 +14,7 @@ import FirebaseSetupAlert from "@/components/auth/FirebaseSetupAlert";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
-  const { signIn, firebaseUser, loading, firebaseReady } = useAuth();
+  const { signIn, isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,10 +22,10 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && firebaseUser) {
+    if (!loading && isAuthenticated) {
       router.replace("/dashboard");
     }
-  }, [loading, firebaseUser, router]);
+  }, [loading, isAuthenticated, router]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -72,7 +72,7 @@ export default function LoginPage() {
           variant="contained"
           fullWidth
           size="large"
-          disabled={submitting || !firebaseReady}
+          disabled={submitting}
           sx={{ mt: 2 }}
         >
           {submitting ? "Signing in…" : "Sign in"}

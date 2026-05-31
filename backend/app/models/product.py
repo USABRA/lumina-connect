@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from sqlalchemy import Boolean, Enum, ForeignKey, JSON, String, Text
+from sqlalchemy import Boolean, ForeignKey, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base
+from app.database import Base, string_enum
 from app.enums import ProductStatus
 
 
@@ -18,7 +18,7 @@ class Product(Base):
     product_type: Mapped[str] = mapped_column(String(100), nullable=False)
     qr_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     status: Mapped[ProductStatus] = mapped_column(
-        Enum(ProductStatus, native_enum=False),
+        string_enum(ProductStatus),
         default=ProductStatus.ACTIVE,
         nullable=False,
     )

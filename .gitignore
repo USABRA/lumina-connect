@@ -20,6 +20,8 @@ venv/
 .env
 .env.local
 .env.*.local
+backend/.firebase-service-account.json
+*-firebase-adminsdk-*.json
 
 # Next.js
 frontend/.next/

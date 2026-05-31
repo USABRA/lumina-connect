@@ -40,6 +40,11 @@ export default function ResetPasswordPage() {
       subtitle="We'll email you a link to reset your password"
     >
       <FirebaseSetupAlert />
+      {!firebaseReady && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Password reset requires Firebase. In local auth mode, create a new account or ask an admin to reset your password in the database.
+        </Alert>
+      )}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}

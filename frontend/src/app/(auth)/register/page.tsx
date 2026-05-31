@@ -14,7 +14,7 @@ import FirebaseSetupAlert from "@/components/auth/FirebaseSetupAlert";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function RegisterPage() {
-  const { signUp, firebaseUser, loading, firebaseReady } = useAuth();
+  const { signUp, isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const [name, setName] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -24,10 +24,10 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!loading && firebaseUser) {
+    if (!loading && isAuthenticated) {
       router.replace("/dashboard");
     }
-  }, [loading, firebaseUser, router]);
+  }, [loading, isAuthenticated, router]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -92,7 +92,7 @@ export default function RegisterPage() {
           variant="contained"
           fullWidth
           size="large"
-          disabled={submitting || !firebaseReady}
+          disabled={submitting}
           sx={{ mt: 2 }}
         >
           {submitting ? "Creating account…" : "Create account"}
