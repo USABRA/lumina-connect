@@ -14,6 +14,8 @@ export default function StatCard({
   color = "#4f46e5",
   loading = false,
   hint,
+  description,
+  growthPct,
 }: {
   label: string;
   value: string | number;
@@ -21,7 +23,15 @@ export default function StatCard({
   color?: string;
   loading?: boolean;
   hint?: string;
+  description?: string;
+  growthPct?: number | null;
 }) {
+  const growthLabel =
+    growthPct != null
+      ? `${growthPct >= 0 ? "+" : ""}${growthPct}% this month`
+      : null;
+  const growthColor = growthPct != null && growthPct >= 0 ? "#10b981" : "#ef4444";
+
   return (
     <Card
       sx={{
@@ -35,7 +45,7 @@ export default function StatCard({
     >
       <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 } }}>
         <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-          <Box>
+          <Box sx={{ minWidth: 0, flex: 1, pr: 1 }}>
             <Typography
               variant="caption"
               sx={{
@@ -52,10 +62,20 @@ export default function StatCard({
               <Skeleton width={64} height={40} sx={{ mt: 0.5 }} />
             ) : (
               <Typography variant="h4" sx={{ fontWeight: 700, mt: 0.5, letterSpacing: "-0.02em" }}>
-                {value}
+                {typeof value === "number" ? value.toLocaleString() : value}
               </Typography>
             )}
-            {hint && !loading && (
+            {!loading && growthLabel && (
+              <Typography variant="caption" sx={{ color: growthColor, fontWeight: 600, display: "block", mt: 0.5 }}>
+                {growthLabel}
+              </Typography>
+            )}
+            {!loading && description && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block", lineHeight: 1.5 }}>
+                {description}
+              </Typography>
+            )}
+            {hint && !loading && !description && (
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
                 {hint}
               </Typography>
@@ -71,6 +91,7 @@ export default function StatCard({
               justifyContent: "center",
               bgcolor: `${color}14`,
               color,
+              flexShrink: 0,
             }}
           >
             <Icon sx={{ fontSize: 22 }} />

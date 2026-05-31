@@ -23,5 +23,7 @@ class Interaction(Base):
     country: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     device_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    event_tag: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    action: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
 
     product: Mapped["Product"] = relationship(back_populates="interactions")

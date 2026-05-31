@@ -8,8 +8,9 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 
+import ImageCropDialog from "@/components/ui/ImageCropDialog";
 import { resizeImageFile } from "@/lib/resizeImage";
 
 type ImageUploadFieldProps = {
@@ -33,12 +34,23 @@ export default function ImageUploadField({
 }: ImageUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [cropOpen, setCropOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
 
-  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  useEffect(() => {
+    return () => {
+      if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    };
+  }, [pendingPreview]);
 
+  function clearPending() {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    setPendingPreview(null);
+    setPendingFile(null);
+  }
+
+  async function uploadFile(file: File) {
     setError("");
     setUploading(true);
     try {
@@ -50,6 +62,39 @@ export default function ImageUploadField({
     } finally {
       setUploading(false);
     }
+  }
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (previewVariant === "avatar") {
+      clearPending();
+      setPendingFile(file);
+      setPendingPreview(URL.createObjectURL(file));
+      setCropOpen(true);
+      return;
+    }
+
+    await uploadFile(file);
+  }
+
+  async function handleCropConfirm(croppedFile: File) {
+    setCropOpen(false);
+    clearPending();
+    await uploadFile(croppedFile);
+  }
+
+  function handleCropCancel() {
+    setCropOpen(false);
+    clearPending();
+  }
+
+  function handleCropError(message: string) {
+    setCropOpen(false);
+    clearPending();
+    setError(message);
   }
 
   return (
@@ -117,6 +162,15 @@ export default function ImageUploadField({
           {error}
         </Alert>
       )}
+
+      <ImageCropDialog
+        open={cropOpen}
+        imageSrc={pendingPreview}
+        fileName={pendingFile?.name ?? "photo.jpg"}
+        onConfirm={handleCropConfirm}
+        onCancel={handleCropCancel}
+        onError={handleCropError}
+      />
     </Box>
   );
 }

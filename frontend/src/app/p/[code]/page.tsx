@@ -6,10 +6,13 @@ import { getProductPublic, ProductUnavailableError } from "@/lib/api";
 
 export default async function ProductLandingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ code: string }>;
+  searchParams: Promise<{ event?: string; lang?: string }>;
 }) {
   const { code } = await params;
+  const query = await searchParams;
 
   let product;
   try {
@@ -21,5 +24,12 @@ export default async function ProductLandingPage({
     notFound();
   }
 
-  return <LandingPageView product={product} code={code} />;
+  return (
+    <LandingPageView
+      product={product}
+      code={code}
+      urlEvent={typeof query.event === "string" ? query.event : null}
+      urlLang={typeof query.lang === "string" ? query.lang : null}
+    />
+  );
 }

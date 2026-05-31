@@ -8,10 +8,10 @@ from app.schemas import (
     CampaignRead,
     CompanyCreate,
     CompanyRead,
-    InteractionCreate,
     InteractionRead,
     LeadCreate,
     LeadRead,
+    LeadSubmit,
     ProductCreate,
     ProductRead,
     UserCreate,
@@ -49,8 +49,9 @@ def test_product_schema():
         product_type="NFC Business Card",
         qr_url="https://app.luminaconnect.com/p/ABC123",
     )
-    read = ProductRead(id=1, **product.model_dump())
+    read = ProductRead(id=1, assigned_user_id=None, **product.model_dump())
     assert read.status == ProductStatus.ACTIVE
+    assert read.assigned_user_id is None
 
 
 def test_interaction_schema():
@@ -76,3 +77,53 @@ def test_lead_schema():
     )
     read = LeadRead(id=1, **lead.model_dump())
     assert read.email == "jane@example.com"
+
+
+def test_lead_submit_requires_email_or_phone():
+    with_phone = LeadSubmit(product_code="ABC123", name="Jane", phone="+15550100")
+    assert with_phone.phone == "+15550100"
+
+    with_email = LeadSubmit(product_code="ABC123", name="Jane", email="jane@example.com")
+    assert with_email.email == "jane@example.com"
+
+
+def test_lead_submit_accepts_event_tag():
+    body = LeadSubmit(
+        product_code="ABC123",
+        name="Jane",
+        email="jane@example.com",
+        event_tag="feira-sp-2026",
+    )
+    assert body.event_tag == "feira-sp-2026"
+
+
+def test_interaction_schema_event_tag():
+    interaction = InteractionRead(
+        id=1,
+        product_id=1,
+        timestamp=datetime(2026, 5, 30, 12, 0, 0),
+        event_tag="expo-2026",
+    )
+    assert interaction.event_tag == "expo-2026"
+
+
+def test_interaction_schema_action():
+    interaction = InteractionRead(
+        id=1,
+        product_id=1,
+        timestamp=datetime(2026, 5, 30, 12, 0, 0),
+        action="meeting_scheduled",
+    )
+    assert interaction.action == "meeting_scheduled"
+
+
+def test_normalize_track_action():
+    from app.services.interaction_actions import (
+        ACTION_MEETING_SCHEDULED,
+        normalize_track_action,
+    )
+
+    assert normalize_track_action(ACTION_MEETING_SCHEDULED) == ACTION_MEETING_SCHEDULED
+    assert normalize_track_action("MEETING_SCHEDULED") == ACTION_MEETING_SCHEDULED
+    assert normalize_track_action("invalid") is None
+    assert normalize_track_action(None) is None

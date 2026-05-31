@@ -1,3 +1,4 @@
+import AdminRouteGuard from "@/components/AdminRouteGuard";
 import AuthGuard from "@/components/AuthGuard";
 import AppShell from "@/components/AppShell";
 
@@ -8,7 +9,9 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthGuard>
-      <AppShell>{children}</AppShell>
+      <AppShell>
+        <AdminRouteGuard>{children}</AdminRouteGuard>
+      </AppShell>
     </AuthGuard>
   );
 }

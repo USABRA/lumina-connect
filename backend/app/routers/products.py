@@ -13,7 +13,16 @@ from app.database import get_db
 from app.enums import ProductStatus
 from app.models import Campaign, Product, User
 from app.schemas import LandingPageUpdate, ProductRead
-from app.services.access import get_company_campaign, get_company_product, require_company
+from app.services.access import get_company_campaign, require_company
+from app.services.permissions import (
+    apply_product_scope,
+    company_scoped_product_ids,
+    get_scoped_company_product,
+    is_admin,
+    resolve_assigned_user_id_for_create,
+    resolve_assigned_user_id_for_update,
+    validate_assigned_user_id,
+)
 from app.services.codes import generate_unique_code
 from app.services.product_access import require_active_product
 from app.services.vcard import build_vcard, vcard_filename
@@ -30,12 +39,16 @@ PRODUCT_TYPES = [
 class ProductUpdate(BaseModel):
     product_type: Optional[str] = Field(default=None, min_length=1, max_length=100)
     status: Optional[ProductStatus] = None
+    team_role_id: Optional[str] = Field(default=None, max_length=100)
+    assigned_user_id: Optional[int] = None
 
 
 class ProductCreateRequest(BaseModel):
     campaign_id: int
     product_type: str = Field(min_length=1, max_length=100)
     unique_code: Optional[str] = Field(default=None, min_length=4, max_length=100)
+    team_role_id: Optional[str] = Field(default=None, max_length=100)
+    assigned_user_id: Optional[int] = None
     landing: Optional[LandingPageUpdate] = None
 
 
@@ -62,6 +75,7 @@ class ProductPublicRead(BaseModel):
     brand_website: Optional[str] = None
     linkedin_url: Optional[str] = None
     whatsapp: Optional[str] = None
+    event_tag: Optional[str] = None
 
 
 def _apply_landing(product: Product, landing: LandingPageUpdate) -> None:
@@ -98,6 +112,7 @@ def _product_public(product: Product) -> ProductPublicRead:
         brand_website=company.brand_website,
         linkedin_url=product.linkedin_url,
         whatsapp=product.whatsapp,
+        event_tag=product.event_tag,
     )
 
 
@@ -153,12 +168,18 @@ def dashboard_stats(
             conversion_rate=0.0,
         )
 
-    product_ids = [
-        row[0]
-        for row in db.query(Product.id).filter(Product.campaign_id.in_(campaign_ids)).all()
-    ]
+    product_ids = company_scoped_product_ids(db, user, company_id)
+    if not is_admin(user):
+        campaign_ids = list(
+            {
+                row[0]
+                for row in db.query(Product.campaign_id)
+                .filter(Product.id.in_(product_ids))
+                .all()
+            }
+        ) if product_ids else []
 
-    active_campaigns = (
+    active_campaigns = len(campaign_ids) if not is_admin(user) else (
         db.query(Campaign)
         .filter(Campaign.company_id == company_id)
         .count()
@@ -201,6 +222,7 @@ def list_products(
 ) -> list[ProductRead]:
     company_id = require_company(user)
     query = db.query(Product).join(Campaign).filter(Campaign.company_id == company_id)
+    query = apply_product_scope(query, user)
     if campaign_id is not None:
         get_company_campaign(db, campaign_id, company_id)
         query = query.filter(Product.campaign_id == campaign_id)
@@ -216,6 +238,8 @@ def create_product(
 ) -> ProductRead:
     company_id = require_company(user)
     get_company_campaign(db, body.campaign_id, company_id)
+    resolve_assigned_user_id_for_create(user, body.assigned_user_id)
+    assigned_user_id = validate_assigned_user_id(db, company_id, body.assigned_user_id)
 
     code = _unique_code(db, body.unique_code.upper() if body.unique_code else None)
     product = Product(
@@ -224,6 +248,8 @@ def create_product(
         product_type=body.product_type,
         qr_url=_build_qr_url(code),
         status=ProductStatus.ACTIVE,
+        team_role_id=body.team_role_id,
+        assigned_user_id=assigned_user_id,
     )
     if body.landing:
         _apply_landing(product, body.landing)
@@ -298,7 +324,7 @@ def update_landing_page(
     db: Annotated[Session, Depends(get_db)],
 ) -> ProductRead:
     company_id = require_company(user)
-    product = get_company_product(db, product_id, company_id)
+    product = get_scoped_company_product(db, user, product_id, company_id)
     _apply_landing(product, body)
     db.commit()
     db.refresh(product)
@@ -312,7 +338,7 @@ def get_product(
     db: Annotated[Session, Depends(get_db)],
 ) -> ProductRead:
     company_id = require_company(user)
-    product = get_company_product(db, product_id, company_id)
+    product = get_scoped_company_product(db, user, product_id, company_id)
     return ProductRead.model_validate(product)
 
 
@@ -324,12 +350,25 @@ def update_product(
     db: Annotated[Session, Depends(get_db)],
 ) -> ProductRead:
     company_id = require_company(user)
-    product = get_company_product(db, product_id, company_id)
+    product = get_scoped_company_product(db, user, product_id, company_id)
+    updates = body.model_dump(exclude_unset=True)
 
     if body.product_type is not None:
         product.product_type = body.product_type
     if body.status is not None:
         product.status = body.status
+    if "team_role_id" in updates and not is_admin(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can change card role assignment",
+        )
+    if "team_role_id" in updates:
+        product.team_role_id = body.team_role_id
+    if "assigned_user_id" in updates:
+        assigned = resolve_assigned_user_id_for_update(
+            user, product, body.assigned_user_id, True
+        )
+        product.assigned_user_id = validate_assigned_user_id(db, company_id, assigned)
 
     db.commit()
     db.refresh(product)
@@ -343,6 +382,11 @@ def delete_product(
     db: Annotated[Session, Depends(get_db)],
 ) -> None:
     company_id = require_company(user)
-    product = get_company_product(db, product_id, company_id)
+    product = get_scoped_company_product(db, user, product_id, company_id)
+    if not is_admin(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can delete business cards",
+        )
     db.delete(product)
     db.commit()

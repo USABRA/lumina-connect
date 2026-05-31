@@ -10,6 +10,7 @@ import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
 import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
+import type { MouseEvent } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
@@ -17,11 +18,15 @@ import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 
+import { CardLanguageToggle, useCardLanguage } from "@/components/landing/CardLanguageProvider";
 import LeadForm from "@/components/landing/LeadForm";
+import NfcCardContactForm from "@/components/landing/NfcCardContactForm";
+import { cardWhatsAppGreeting } from "@/lib/cardI18n";
 import type { LandingBlock } from "@/lib/landingBlocks";
 import type { LandingPreviewData } from "@/lib/landingTemplates";
 import { APP_NAME } from "@/lib/branding";
 import { getContactVcardUrl } from "@/lib/api";
+import { openTrackedMeetingLink } from "@/lib/trackInteraction";
 import { normalizeLinkedInUrl, whatsappHref } from "@/lib/vcard";
 
 const LEGACY_TEMPLATES: Record<string, string> = {
@@ -109,13 +114,16 @@ function CtaButtons({
   color,
   compact,
   inverted,
+  preview,
 }: {
   product: LandingPreviewData;
   color: string;
   compact?: boolean;
   inverted?: boolean;
+  preview?: boolean;
 }) {
   if (!product.pdf_url && !product.meeting_url) return null;
+  const code = product.unique_code;
   return (
     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, justifyContent: inverted ? "center" : "flex-start" }}>
       {product.pdf_url && (
@@ -134,9 +142,18 @@ function CtaButtons({
         <Button
           variant="contained"
           size={compact ? "small" : "medium"}
-          href={product.meeting_url}
-          target="_blank"
-          rel="noopener"
+          component={preview ? "button" : "a"}
+          href={preview ? undefined : product.meeting_url}
+          target={preview ? undefined : "_blank"}
+          rel={preview ? undefined : "noopener"}
+          onClick={
+            preview
+              ? undefined
+              : (e: MouseEvent) => {
+                  e.preventDefault();
+                  openTrackedMeetingLink(code, product.meeting_url!, product.event_tag);
+                }
+          }
           sx={{ bgcolor: inverted ? "white" : color, color: inverted ? color : "white", "&:hover": { bgcolor: inverted ? "#f8fafc" : color, filter: inverted ? "none" : "brightness(0.92)" } }}
         >
           Book a demo
@@ -250,7 +267,7 @@ function PageShowcase({
               {product.landing_description}
             </Typography>
           )}
-          <CtaButtons product={product} color={color} compact={compact} inverted />
+          <CtaButtons product={product} color={color} compact={compact} inverted preview={preview} />
         </Container>
       </Box>
 
@@ -302,7 +319,7 @@ function PageSplit({ product, color, headline, highlights, embedUrl, preview, co
                 ))}
               </Box>
             )}
-            <CtaButtons product={product} color={color} compact={compact} />
+            <CtaButtons product={product} color={color} compact={compact} preview={preview} />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             {product.hero_image_url ? (
@@ -374,7 +391,7 @@ function PageTradeShow({ product, color, headline, highlights, embedUrl, preview
               </Box>
             )}
             <Box sx={{ mt: 2 }}>
-              <CtaButtons product={product} color={color} compact={compact} />
+              <CtaButtons product={product} color={color} compact={compact} preview={preview} />
             </Box>
           </Grid>
           <Grid size={{ xs: 12, md: 5 }}>
@@ -408,7 +425,7 @@ function PageMediaCenter({ product, color, headline, embedUrl, preview, compact 
           </Typography>
         )}
         <Box sx={{ mt: 3 }}>
-          <CtaButtons product={product} color={color} compact={compact} inverted />
+          <CtaButtons product={product} color={color} compact={compact} inverted preview={preview} />
         </Box>
       </Container>
       <Box sx={{ bgcolor: "#f8fafc", color: "text.primary" }}>
@@ -419,6 +436,7 @@ function PageMediaCenter({ product, color, headline, embedUrl, preview, compact 
 }
 
 function PageNfcCard({ product, color, headline, preview, compact }: PageProps) {
+  const { t, lang } = useCardLanguage();
   const jobTitle = product.highlight_1 || "";
   const phone = product.highlight_2 || "";
   const email = product.highlight_3 || "";
@@ -435,19 +453,45 @@ function PageNfcCard({ product, color, headline, preview, compact }: PageProps) 
       : undefined;
 
   const actions = [
-    phone && { label: "Call", href: `tel:${phone.replace(/\s/g, "")}`, icon: PhoneOutlinedIcon },
-    email && { label: "Email", href: `mailto:${email}`, icon: EmailOutlinedIcon },
     whatsappNumber && {
-      label: "WhatsApp",
-      href: whatsappHref(whatsappNumber, `Hi ${headline}, I got your card.`),
+      label: t("whatsapp"),
+      href: whatsappHref(whatsappNumber, cardWhatsAppGreeting(lang, headline)),
       icon: ChatOutlinedIcon,
+      primary: true,
     },
-    linkedinUrl && { label: "LinkedIn", href: linkedinUrl, icon: WorkOutlineOutlinedIcon },
-    meetingUrl && { label: "Book meeting", href: meetingUrl, icon: CalendarMonthOutlinedIcon },
-    website && { label: "Website", href: website.startsWith("http") ? website : `https://${website}`, icon: LanguageOutlinedIcon },
-  ].filter(Boolean) as { label: string; href: string; icon: typeof PhoneOutlinedIcon }[];
+    phone && {
+      label: t("call"),
+      href: `tel:${phone.replace(/\s/g, "")}`,
+      icon: PhoneOutlinedIcon,
+      primary: true,
+    },
+    meetingUrl && {
+      label: t("schedule"),
+      href: meetingUrl,
+      icon: CalendarMonthOutlinedIcon,
+      primary: true,
+      trackMeeting: true,
+    },
+    email && { label: t("email"), href: `mailto:${email}`, icon: EmailOutlinedIcon, primary: false },
+    linkedinUrl && { label: t("linkedin"), href: linkedinUrl, icon: WorkOutlineOutlinedIcon, primary: false },
+    website && {
+      label: t("website"),
+      href: website.startsWith("http") ? website : `https://${website}`,
+      icon: LanguageOutlinedIcon,
+      primary: false,
+    },
+  ].filter(Boolean) as {
+    label: string;
+    href: string;
+    icon: typeof PhoneOutlinedIcon;
+    primary: boolean;
+    trackMeeting?: boolean;
+  }[];
 
+  const primaryActions = actions.filter((a) => a.primary);
+  const secondaryActions = actions.filter((a) => !a.primary);
   const canSaveContact = Boolean(headline && (phone || email));
+  const showContactForm = product.contact_form_enabled;
 
   const isEmbedded = compact || preview;
 
@@ -480,39 +524,45 @@ function PageNfcCard({ product, color, headline, preview, compact }: PageProps) 
             color: "white",
             px: 3,
             pt: 3,
-            pb: photoUrl ? 6 : 5,
+            pb: photoUrl ? 7 : 5,
             textAlign: "center",
             position: "relative",
           }}
         >
-          {product.logo_url && !photoUrl && (
+          {product.logo_url && (
             <Box
               sx={{
-                width: compact ? 56 : 72,
-                height: compact ? 56 : 72,
-                borderRadius: "50%",
-                bgcolor: "white",
-                mx: "auto",
-                mb: 2,
+                position: "absolute",
+                top: compact ? 10 : 14,
+                left: compact ? 10 : 14,
+                zIndex: 1,
+                bgcolor: "rgba(255,255,255,0.95)",
+                borderRadius: 1.5,
+                px: 1,
+                py: 0.75,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                overflow: "hidden",
-                border: "3px solid rgba(255,255,255,0.35)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={product.logo_url} alt="" style={{ maxWidth: "80%", maxHeight: "80%" }} />
+              <img
+                src={product.logo_url}
+                alt=""
+                style={{ maxHeight: compact ? 28 : 40, maxWidth: compact ? 72 : 96, display: "block" }}
+              />
             </Box>
           )}
           {photoUrl && (
             <Box
               sx={{
-                width: compact ? 88 : 104,
-                height: compact ? 88 : 104,
+                width: compact ? 120 : 152,
+                height: compact ? 120 : 152,
                 borderRadius: "50%",
                 mx: "auto",
                 mb: 2,
+                mt: compact ? 0.5 : 1,
                 overflow: "hidden",
                 border: "4px solid rgba(255,255,255,0.85)",
                 boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
@@ -522,35 +572,18 @@ function PageNfcCard({ product, color, headline, preview, compact }: PageProps) 
               <img src={photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </Box>
           )}
-          {product.logo_url && photoUrl && (
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                bgcolor: "white",
-                mx: "auto",
-                mb: 1.5,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
-                border: "2px solid rgba(255,255,255,0.35)",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={product.logo_url} alt="" style={{ maxWidth: "75%", maxHeight: "75%" }} />
-            </Box>
-          )}
-          <Typography variant={compact ? "h6" : "h4"} sx={{ fontWeight: 800, letterSpacing: "-0.02em" }}>
+          <Typography
+            variant={compact ? "h6" : "h4"}
+            sx={{ fontWeight: 800, letterSpacing: "-0.02em", textAlign: "center" }}
+          >
             {headline}
           </Typography>
           {jobTitle && (
-            <Typography variant="body1" sx={{ mt: 0.5, opacity: 0.92 }}>
+            <Typography variant="body1" sx={{ mt: 0.5, opacity: 0.92, textAlign: "center" }}>
               {jobTitle}
             </Typography>
           )}
-          <Typography variant="body2" sx={{ mt: 1, opacity: 0.75 }}>
+          <Typography variant="body2" sx={{ mt: 1, opacity: 0.75, textAlign: "center" }}>
             {product.company_name}
           </Typography>
         </Box>
@@ -564,46 +597,77 @@ function PageNfcCard({ product, color, headline, preview, compact }: PageProps) 
               bgcolor: "background.paper",
               border: "1px solid",
               borderColor: "divider",
+              textAlign: "center",
             }}
           >
+            {!preview && <CardLanguageToggle compact={compact} />}
             {product.landing_description && (
               <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mb: 2.5 }}>
                 {product.landing_description}
               </Typography>
             )}
 
-            {canSaveContact && (
-              <Button
-                variant="contained"
-                fullWidth
-                component={preview || !contactVcardUrl ? "button" : "a"}
-                href={preview || !contactVcardUrl ? undefined : contactVcardUrl}
-                disabled={preview || !contactVcardUrl}
-                startIcon={<ContactPageOutlinedIcon />}
-                sx={{
-                  mb: 1.5,
-                  py: 1.25,
-                  bgcolor: color,
-                  "&:hover": { bgcolor: color, filter: "brightness(0.92)" },
-                }}
-              >
-                Add to contacts
-              </Button>
-            )}
-
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
-              {actions.map(({ label, href, icon: Icon }) => (
+              {primaryActions.map(({ label, href, icon: Icon, trackMeeting }) => (
+                <Button
+                  key={label}
+                  variant="contained"
+                  fullWidth
+                  component={preview ? "button" : "a"}
+                  href={preview ? undefined : href}
+                  target={preview || label === t("call") ? undefined : "_blank"}
+                  rel={preview ? undefined : "noopener"}
+                  onClick={
+                    preview || !trackMeeting
+                      ? undefined
+                      : (e: MouseEvent) => {
+                          e.preventDefault();
+                          openTrackedMeetingLink(product.unique_code, href, product.event_tag);
+                        }
+                  }
+                  startIcon={<Icon />}
+                  sx={{
+                    justifyContent: "center",
+                    py: 1.25,
+                    bgcolor: color,
+                    "&:hover": { bgcolor: color, filter: "brightness(0.92)" },
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
+
+              {canSaveContact && (
+                <Button
+                  variant="contained"
+                  fullWidth
+                  component={preview || !contactVcardUrl ? "button" : "a"}
+                  href={preview || !contactVcardUrl ? undefined : contactVcardUrl}
+                  disabled={preview || !contactVcardUrl}
+                  startIcon={<ContactPageOutlinedIcon />}
+                  sx={{
+                    justifyContent: "center",
+                    py: 1.25,
+                    bgcolor: color,
+                    "&:hover": { bgcolor: color, filter: "brightness(0.92)" },
+                  }}
+                >
+                  {t("saveContact")}
+                </Button>
+              )}
+
+              {secondaryActions.map(({ label, href, icon: Icon }) => (
                 <Button
                   key={label}
                   variant="outlined"
                   fullWidth
                   component={preview ? "button" : "a"}
                   href={preview ? undefined : href}
-                  target={preview || label === "Call" || label === "Email" ? undefined : "_blank"}
+                  target={preview || label === t("email") ? undefined : "_blank"}
                   rel={preview ? undefined : "noopener"}
                   startIcon={<Icon />}
                   sx={{
-                    justifyContent: "flex-start",
+                    justifyContent: "center",
                     py: 1.25,
                     borderColor: "divider",
                     color: "text.primary",
@@ -613,6 +677,7 @@ function PageNfcCard({ product, color, headline, preview, compact }: PageProps) 
                   {label}
                 </Button>
               ))}
+
               {pdfUrl && (
                 <Button
                   variant="outlined"
@@ -621,16 +686,25 @@ function PageNfcCard({ product, color, headline, preview, compact }: PageProps) 
                   href={preview ? undefined : pdfUrl}
                   target={preview ? undefined : "_blank"}
                   rel={preview ? undefined : "noopener"}
-                  sx={{ mt: 0.5, py: 1.25, borderColor: "divider" }}
+                  sx={{ justifyContent: "center", py: 1.25, borderColor: "divider" }}
                 >
-                  Download profile
+                  {t("downloadProfile")}
                 </Button>
               )}
             </Box>
 
-            {actions.length === 0 && !pdfUrl && !canSaveContact && (
+            {showContactForm && (
+              <NfcCardContactForm
+                productCode={product.unique_code}
+                preview={preview}
+                accentColor={preview ? undefined : color}
+                eventTag={product.event_tag}
+              />
+            )}
+
+            {primaryActions.length === 0 && secondaryActions.length === 0 && !pdfUrl && !canSaveContact && !showContactForm && (
               <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
-                Add phone, email or links in the card settings.
+                {t("emptyCard")}
               </Typography>
             )}
           </Paper>
@@ -691,12 +765,18 @@ function BlockCtaButtons({
   color,
   compact,
   align = "center",
+  code,
+  eventTag,
+  preview,
 }: {
   pdfUrl?: string;
   meetingUrl?: string;
   color: string;
   compact?: boolean;
   align?: "left" | "center";
+  code?: string;
+  eventTag?: string | null;
+  preview?: boolean;
 }) {
   if (!pdfUrl && !meetingUrl) return null;
   return (
@@ -724,9 +804,18 @@ function BlockCtaButtons({
         <Button
           variant="contained"
           size={compact ? "small" : "medium"}
-          href={meetingUrl}
-          target="_blank"
-          rel="noopener"
+          component={preview ? "button" : "a"}
+          href={preview ? undefined : meetingUrl}
+          target={preview ? undefined : "_blank"}
+          rel={preview ? undefined : "noopener"}
+          onClick={
+            preview
+              ? undefined
+              : (e: MouseEvent) => {
+                  e.preventDefault();
+                  openTrackedMeetingLink(code ?? "", meetingUrl, eventTag);
+                }
+          }
           sx={{ bgcolor: color, color: "white", "&:hover": { bgcolor: color, filter: "brightness(0.92)" } }}
         >
           Book a demo
@@ -854,6 +943,9 @@ function CustomBlock({
             color={color}
             compact={compact}
             align={block.align}
+            code={product.unique_code}
+            eventTag={product.event_tag}
+            preview={preview}
           />
         </Container>
       );

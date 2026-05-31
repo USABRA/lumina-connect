@@ -8,7 +8,9 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Grid from "@mui/material/Grid";
+import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
@@ -16,9 +18,12 @@ import { useMemo, useState } from "react";
 
 import LandingPreview from "@/components/landing/LandingPreview";
 import ImageUploadField from "@/components/ui/ImageUploadField";
-import type { CompanyBrand } from "@/lib/api";
+import AssignedUserSelectField from "@/components/products/AssignedUserSelectField";
+import RoleSelectField from "@/components/products/RoleSelectField";
+import type { CompanyBrand, CompanyMember, TeamStructure } from "@/lib/api";
 import { buildNfcCardLanding, NFC_PRODUCT_TYPE } from "@/lib/nfcCard";
 import { configToPreview, type LandingPageConfig } from "@/lib/landingTemplates";
+import { parseTeamStructure } from "@/lib/teamStructure";
 import { useApi } from "@/hooks/useApi";
 
 type NfcCardQuickCreateProps = {
@@ -27,8 +32,11 @@ type NfcCardQuickCreateProps = {
   onCreate: (payload: {
     product_type: string;
     unique_code?: string;
+    team_role_id?: string | null;
+    assigned_user_id?: number | null;
     landing: LandingPageConfig;
   }) => Promise<void>;
+  members: CompanyMember[];
   brand: CompanyBrand | null;
   companyName: string;
   campaignName: string;
@@ -39,6 +47,7 @@ export default function NfcCardQuickCreate({
   open,
   onClose,
   onCreate,
+  members,
   brand,
   companyName,
   campaignName,
@@ -47,15 +56,24 @@ export default function NfcCardQuickCreate({
   const { uploadImage } = useApi();
   const [holderName, setHolderName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
+  const [teamRoleId, setTeamRoleId] = useState<string | null>(null);
+  const [assignedUserId, setAssignedUserId] = useState<number | null>(null);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [customCode, setCustomCode] = useState("");
+  const [contactFormEnabled, setContactFormEnabled] = useState(true);
   const [error, setError] = useState("");
 
   const brandReady = Boolean(brand?.company_name);
+  const teamStructure: TeamStructure = parseTeamStructure(brand?.team_structure);
+
+  function handleRoleChange(roleId: string | null, roleName: string | null) {
+    setTeamRoleId(roleId);
+    if (roleName) setJobTitle(roleName);
+  }
 
   const landingConfig = useMemo(() => {
     if (!brand) return null;
@@ -67,8 +85,9 @@ export default function NfcCardQuickCreate({
       photoUrl: photoUrl || undefined,
       linkedinUrl: linkedinUrl || undefined,
       whatsapp: whatsapp || undefined,
+      contactFormEnabled,
     });
-  }, [brand, holderName, jobTitle, phone, email, photoUrl, linkedinUrl, whatsapp]);
+  }, [brand, holderName, jobTitle, phone, email, photoUrl, linkedinUrl, whatsapp, contactFormEnabled]);
 
   const preview = landingConfig
     ? {
@@ -96,20 +115,26 @@ export default function NfcCardQuickCreate({
       photoUrl: photoUrl || undefined,
       linkedinUrl: linkedinUrl || undefined,
       whatsapp: whatsapp || undefined,
+      contactFormEnabled,
     });
     await onCreate({
       product_type: NFC_PRODUCT_TYPE,
       unique_code: customCode.trim() || undefined,
+      team_role_id: teamRoleId,
+      assigned_user_id: assignedUserId,
       landing,
     });
     setHolderName("");
     setJobTitle("");
+    setTeamRoleId(null);
+    setAssignedUserId(null);
     setPhone("");
     setEmail("");
     setPhotoUrl("");
     setLinkedinUrl("");
     setWhatsapp("");
     setCustomCode("");
+    setContactFormEnabled(true);
   }
 
   return (
@@ -138,6 +163,12 @@ export default function NfcCardQuickCreate({
                   onChange={(e) => setHolderName(e.target.value)}
                   placeholder="Maria Silva"
                 />
+                <AssignedUserSelectField
+                  members={members}
+                  value={assignedUserId}
+                  onChange={setAssignedUserId}
+                />
+                <RoleSelectField structure={teamStructure} value={teamRoleId} onChange={handleRoleChange} />
                 <TextField
                   label="Job title"
                   required
@@ -145,6 +176,7 @@ export default function NfcCardQuickCreate({
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
                   placeholder="Sales Director"
+                  helperText="Auto-filled from role — you can edit anytime"
                 />
                 <TextField
                   label="Phone (optional)"
@@ -187,6 +219,15 @@ export default function NfcCardQuickCreate({
                   value={customCode}
                   onChange={(e) => setCustomCode(e.target.value.toUpperCase())}
                   helperText="Leave blank to auto-generate"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={contactFormEnabled}
+                      onChange={(e) => setContactFormEnabled(e.target.checked)}
+                    />
+                  }
+                  label="Enable contact form on card"
                 />
               </Box>
               {error && (

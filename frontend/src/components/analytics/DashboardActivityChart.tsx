@@ -1,6 +1,7 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
@@ -20,6 +21,13 @@ import {
 import ContentCard from "@/components/ui/ContentCard";
 
 type DailyPoint = { date: string; scan_count: number };
+
+const RANGE_OPTIONS = [
+  { label: "7 Days", days: 7 },
+  { label: "30 Days", days: 30 },
+  { label: "90 Days", days: 90 },
+  { label: "1 Year", days: 365 },
+];
 
 function aggregateWeekly(daily: DailyPoint[]) {
   const buckets = new Map<string, number>();
@@ -46,7 +54,15 @@ function aggregateMonthly(daily: DailyPoint[]) {
     .map(([month, taps]) => ({ label: month, taps }));
 }
 
-export default function DashboardActivityChart({ daily }: { daily: DailyPoint[] }) {
+export default function DashboardActivityChart({
+  daily,
+  days,
+  onDaysChange,
+}: {
+  daily: DailyPoint[];
+  days: number;
+  onDaysChange: (days: number) => void;
+}) {
   const [tab, setTab] = useState(0);
 
   const chartData = useMemo(() => {
@@ -58,13 +74,30 @@ export default function DashboardActivityChart({ daily }: { daily: DailyPoint[] 
   const empty = chartData.length === 0;
 
   return (
-    <ContentCard title="Interaction Activity">
+    <ContentCard
+      title="Interaction Activity"
+      action={
+        <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+          {RANGE_OPTIONS.map((opt) => (
+            <Chip
+              key={opt.days}
+              label={opt.label}
+              size="small"
+              clickable
+              color={days === opt.days ? "primary" : "default"}
+              variant={days === opt.days ? "filled" : "outlined"}
+              onClick={() => onDaysChange(opt.days)}
+            />
+          ))}
+        </Box>
+      }
+    >
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 2.5, borderBottom: 1, borderColor: "divider" }}>
         <Tab label="Daily Taps" />
         <Tab label="Weekly Taps" />
         <Tab label="Monthly Taps" />
       </Tabs>
-      <Box sx={{ p: 2.5, height: 280 }}>
+      <Box sx={{ p: 2.5, height: 300 }}>
         {empty ? (
           <Typography color="text.secondary">No tap activity yet. Share a card to start tracking.</Typography>
         ) : tab === 0 ? (

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from app.enums import ProductStatus, SubscriptionPlan, UserRole
 
@@ -28,6 +28,29 @@ class CompanyRead(CompanyBase):
     brand_phone: Optional[str] = None
     default_meeting_url: Optional[str] = None
     default_pdf_url: Optional[str] = None
+    team_structure: Optional[dict[str, Any]] = None
+
+
+class TeamRoleSchema(BaseModel):
+    id: str = Field(min_length=1, max_length=100)
+    name: str = Field(min_length=1, max_length=255)
+    group_id: Optional[str] = Field(default=None, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=500)
+    sort_order: int = 0
+    color: Optional[str] = Field(default=None, max_length=20)
+
+
+class TeamGroupSchema(BaseModel):
+    id: str = Field(min_length=1, max_length=100)
+    name: str = Field(min_length=1, max_length=255)
+    description: Optional[str] = Field(default=None, max_length=500)
+    sort_order: int = 0
+    color: Optional[str] = Field(default=None, max_length=20)
+
+
+class TeamStructureUpdate(BaseModel):
+    groups: list[TeamGroupSchema] = Field(default_factory=list)
+    roles: list[TeamRoleSchema] = Field(default_factory=list)
 
 
 class CompanyBrandUpdate(BaseModel):
@@ -114,6 +137,19 @@ class ProductRead(ProductBase):
     landing_blocks: Optional[list[dict[str, Any]]] = None
     linkedin_url: Optional[str] = None
     whatsapp: Optional[str] = None
+    team_role_id: Optional[str] = None
+    assigned_user_id: Optional[int] = None
+    event_tag: Optional[str] = None
+
+
+class CompanyMemberRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    email: str
+    role: UserRole
+    avatar_url: Optional[str] = None
 
 
 class LandingPageUpdate(BaseModel):
@@ -133,14 +169,22 @@ class LandingPageUpdate(BaseModel):
     landing_blocks: Optional[list[dict[str, Any]]] = None
     linkedin_url: Optional[str] = Field(default=None, max_length=500)
     whatsapp: Optional[str] = Field(default=None, max_length=50)
+    event_tag: Optional[str] = Field(default=None, max_length=100)
 
 
 class LeadSubmit(BaseModel):
     product_code: str = Field(min_length=1, max_length=100)
     name: str = Field(min_length=1, max_length=255)
-    email: EmailStr
+    email: Optional[EmailStr] = None
     phone: Optional[str] = Field(default=None, max_length=50)
     company: Optional[str] = Field(default=None, max_length=255)
+    event_tag: Optional[str] = Field(default=None, max_length=100)
+
+    @model_validator(mode="after")
+    def require_email_or_phone(self) -> "LeadSubmit":
+        if not self.email and not (self.phone and self.phone.strip()):
+            raise ValueError("Email or phone is required")
+        return self
 
 
 class InteractionBase(BaseModel):
@@ -149,10 +193,8 @@ class InteractionBase(BaseModel):
     country: Optional[str] = None
     device_type: Optional[str] = None
     ip_address: Optional[str] = None
-
-
-class InteractionCreate(InteractionBase):
-    pass
+    event_tag: Optional[str] = None
+    action: Optional[str] = None
 
 
 class InteractionRead(InteractionBase):
@@ -165,9 +207,10 @@ class InteractionRead(InteractionBase):
 class LeadBase(BaseModel):
     product_id: int
     name: str
-    email: EmailStr
+    email: str
     phone: Optional[str] = None
     company: Optional[str] = None
+    event_tag: Optional[str] = None
 
 
 class LeadCreate(LeadBase):

@@ -7,16 +7,22 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Grid from "@mui/material/Grid";
+import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 
 import LandingPreview from "@/components/landing/LandingPreview";
 import ImageUploadField from "@/components/ui/ImageUploadField";
-import type { CompanyBrand, Product } from "@/lib/api";
+import AssignedUserSelectField from "@/components/products/AssignedUserSelectField";
+import RoleSelectField from "@/components/products/RoleSelectField";
+import type { CompanyBrand, CompanyMember, Product } from "@/lib/api";
+import { isAdmin } from "@/lib/permissions";
 import { buildNfcCardLanding } from "@/lib/nfcCard";
 import { configToPreview, type LandingPageConfig } from "@/lib/landingTemplates";
+import { parseTeamStructure } from "@/lib/teamStructure";
 import { useApi } from "@/hooks/useApi";
 
 type NfcCardEditDialogProps = {
@@ -25,7 +31,13 @@ type NfcCardEditDialogProps = {
   product: Product | null;
   brand: CompanyBrand | null;
   companyName: string;
-  onSave: (landing: LandingPageConfig) => Promise<void>;
+  members?: CompanyMember[];
+  userRole?: "admin" | "company_user";
+  onSave: (payload: {
+    landing: LandingPageConfig;
+    team_role_id: string | null;
+    assigned_user_id?: number | null;
+  }) => Promise<void>;
   saving?: boolean;
 };
 
@@ -35,28 +47,39 @@ export default function NfcCardEditDialog({
   product,
   brand,
   companyName,
+  members = [],
+  userRole = "company_user",
   onSave,
   saving = false,
 }: NfcCardEditDialogProps) {
   const { uploadImage } = useApi();
   const [holderName, setHolderName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
+  const [teamRoleId, setTeamRoleId] = useState<string | null>(null);
+  const [assignedUserId, setAssignedUserId] = useState<number | null>(null);
+  const userIsAdmin = isAdmin(userRole);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [contactFormEnabled, setContactFormEnabled] = useState(true);
+  const [eventTag, setEventTag] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!product) return;
     setHolderName(product.landing_headline ?? "");
     setJobTitle(product.highlight_1 ?? "");
+    setTeamRoleId(product.team_role_id ?? null);
+    setAssignedUserId(product.assigned_user_id ?? null);
     setPhone(product.highlight_2 ?? "");
     setEmail(product.highlight_3 ?? "");
     setPhotoUrl(product.hero_image_url ?? "");
     setLinkedinUrl(product.linkedin_url ?? "");
     setWhatsapp(product.whatsapp ?? "");
+    setContactFormEnabled(product.contact_form_enabled ?? true);
+    setEventTag(product.event_tag ?? "");
     setError("");
   }, [product]);
 
@@ -70,8 +93,10 @@ export default function NfcCardEditDialog({
       photoUrl: photoUrl || undefined,
       linkedinUrl: linkedinUrl || undefined,
       whatsapp: whatsapp || undefined,
+      contactFormEnabled,
+      eventTag: eventTag.trim() || undefined,
     });
-  }, [brand, holderName, jobTitle, phone, email, photoUrl, linkedinUrl, whatsapp]);
+  }, [brand, holderName, jobTitle, phone, email, photoUrl, linkedinUrl, whatsapp, contactFormEnabled, eventTag]);
 
   const preview = landingConfig
     ? {
@@ -82,8 +107,16 @@ export default function NfcCardEditDialog({
           productCode: product?.unique_code,
         }),
         brand_website: brand?.brand_website ?? null,
+        event_tag: eventTag.trim() || null,
       }
     : null;
+
+  const teamStructure = parseTeamStructure(brand?.team_structure);
+
+  function handleRoleChange(roleId: string | null, roleName: string | null) {
+    setTeamRoleId(roleId);
+    if (roleName) setJobTitle(roleName);
+  }
 
   async function handleSave() {
     if (!brand || !holderName.trim() || !jobTitle.trim()) {
@@ -91,8 +124,8 @@ export default function NfcCardEditDialog({
       return;
     }
     setError("");
-    await onSave(
-      buildNfcCardLanding(brand, {
+    await onSave({
+      landing: buildNfcCardLanding(brand, {
         holderName,
         jobTitle,
         phone: phone || undefined,
@@ -100,8 +133,12 @@ export default function NfcCardEditDialog({
         photoUrl: photoUrl || undefined,
         linkedinUrl: linkedinUrl || undefined,
         whatsapp: whatsapp || undefined,
-      })
-    );
+        contactFormEnabled,
+        eventTag: eventTag.trim() || undefined,
+      }),
+      team_role_id: teamRoleId,
+      assigned_user_id: userIsAdmin ? assignedUserId : undefined,
+    });
   }
 
   return (
@@ -112,6 +149,16 @@ export default function NfcCardEditDialog({
           <Grid size={{ xs: 12, md: 5 }}>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <TextField label="Full name" required fullWidth value={holderName} onChange={(e) => setHolderName(e.target.value)} />
+              {userIsAdmin && (
+                <AssignedUserSelectField
+                  members={members}
+                  value={assignedUserId}
+                  onChange={setAssignedUserId}
+                />
+              )}
+              {userIsAdmin && (
+                <RoleSelectField structure={teamStructure} value={teamRoleId} onChange={handleRoleChange} />
+              )}
               <TextField label="Job title" required fullWidth value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
               <TextField label="Phone" fullWidth value={phone} onChange={(e) => setPhone(e.target.value)} />
               <TextField label="Email" fullWidth type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -135,6 +182,23 @@ export default function NfcCardEditDialog({
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
                 placeholder="+1 555 000 0000"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={contactFormEnabled}
+                    onChange={(e) => setContactFormEnabled(e.target.checked)}
+                  />
+                }
+                label="Enable contact form on card"
+              />
+              <TextField
+                label="Default event tag"
+                fullWidth
+                value={eventTag}
+                onChange={(e) => setEventTag(e.target.value)}
+                placeholder="feira-sp-2026"
+                helperText="Optional. Tracks taps/leads for trade shows. Override with ?event= on the card URL."
               />
             </Box>
             {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}

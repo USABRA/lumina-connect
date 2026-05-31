@@ -3,7 +3,7 @@ import type { LandingPageConfig } from "@/lib/landingTemplates";
 
 export const NFC_PRODUCT_TYPE = "NFC Business Card";
 
-export type NfcCardInput = {
+type NfcCardInput = {
   holderName: string;
   jobTitle: string;
   phone?: string;
@@ -11,6 +11,8 @@ export type NfcCardInput = {
   photoUrl?: string;
   linkedinUrl?: string;
   whatsapp?: string;
+  contactFormEnabled?: boolean;
+  eventTag?: string;
 };
 
 export function buildNfcCardLanding(
@@ -35,10 +37,7 @@ export function buildNfcCardLanding(
     video_url: "",
     pdf_url: brand.default_pdf_url || "",
     meeting_url: brand.default_meeting_url || "",
-    contact_form_enabled: false,
+    contact_form_enabled: card.contactFormEnabled ?? true,
+    event_tag: card.eventTag?.trim() || null,
   };
-}
-
-export function isNfcProduct(productType: string) {
-  return productType === NFC_PRODUCT_TYPE;
 }

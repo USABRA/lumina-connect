@@ -36,3 +36,4 @@ dist/
 *.log
 .vercel
 backend/uploads/
+.dev/

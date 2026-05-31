@@ -15,10 +15,12 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import AnalyticsCharts from "@/components/analytics/AnalyticsCharts";
+import UnifiedAnalyticsChart from "@/components/analytics/UnifiedAnalyticsChart";
+import RoleBadge from "@/components/team/RoleBadge";
 import ContentCard from "@/components/ui/ContentCard";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
@@ -30,25 +32,42 @@ import {
   type InteractionEvent,
   type LeadEvent,
 } from "@/lib/api";
+import { parseTeamStructure } from "@/lib/teamStructure";
 
 export default function AnalyticsPage() {
   const { request } = useApi();
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, profile } = useAuth();
+  const teamStructure = parseTeamStructure(profile?.company?.team_structure);
+  const hasTeamStructure = teamStructure.groups.length > 0 || teamStructure.roles.length > 0;
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
   const [interactions, setInteractions] = useState<InteractionEvent[]>([]);
   const [leads, setLeads] = useState<LeadEvent[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [filterGroupId, setFilterGroupId] = useState<string | null>(null);
+  const [filterRoleId, setFilterRoleId] = useState<string | null>(null);
+  const [filterEventTag, setFilterEventTag] = useState("");
+  const [days, setDays] = useState(30);
+
+  const filterQuery = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("days", String(days));
+    if (filterRoleId) params.set("role_id", filterRoleId);
+    else if (filterGroupId) params.set("group_id", filterGroupId);
+    const eventTag = filterEventTag.trim();
+    if (eventTag) params.set("event_tag", eventTag);
+    return `?${params.toString()}`;
+  }, [filterGroupId, filterRoleId, filterEventTag, days]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const [overviewData, events, leadRows] = await Promise.all([
-        request<AnalyticsOverview>("/analytics/overview"),
-        request<InteractionEvent[]>("/analytics/interactions?limit=25"),
-        request<LeadEvent[]>("/leads?limit=25"),
+        request<AnalyticsOverview>(`/analytics/overview${filterQuery}`),
+        request<InteractionEvent[]>(`/analytics/interactions?limit=25${filterQuery ? filterQuery.replace("?", "&") : ""}`),
+        request<LeadEvent[]>(`/leads?limit=25${filterQuery ? filterQuery.replace("?", "&") : ""}`),
       ]);
       setOverview(overviewData);
       setInteractions(events);
@@ -58,7 +77,7 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [request]);
+  }, [request, filterQuery]);
 
   useEffect(() => {
     load();
@@ -120,7 +139,33 @@ export default function AnalyticsPage() {
         ))}
       </Grid>
 
-      {overview && !loading && <AnalyticsCharts data={overview} />}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2, alignItems: "center" }}>
+        <TextField
+          size="small"
+          label="Event tag"
+          placeholder="feira-sp-2026"
+          value={filterEventTag}
+          onChange={(e) => setFilterEventTag(e.target.value)}
+          sx={{ minWidth: 220 }}
+        />
+      </Box>
+
+      {overview && (
+        <Box sx={{ mb: 3 }}>
+          <UnifiedAnalyticsChart
+            data={overview}
+            days={days}
+            onDaysChange={setDays}
+            loading={loading}
+            hasTeamStructure={hasTeamStructure}
+            teamStructure={teamStructure}
+            filterGroupId={filterGroupId}
+            filterRoleId={filterRoleId}
+            onGroupChange={setFilterGroupId}
+            onRoleChange={setFilterRoleId}
+          />
+        </Box>
+      )}
 
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, md: 6 }}>
@@ -131,13 +176,14 @@ export default function AnalyticsPage() {
                 <TableRow>
                   <TableCell>Code</TableCell>
                   <TableCell>Type</TableCell>
+                  <TableCell>Role</TableCell>
                   <TableCell align="right">Taps</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {!overview?.top_products.length ? (
                   <TableRow>
-                    <TableCell colSpan={3}>
+                    <TableCell colSpan={4}>
                       {loading ? "Loading…" : "No taps yet."}
                     </TableCell>
                   </TableRow>
@@ -146,6 +192,9 @@ export default function AnalyticsPage() {
                     <TableRow key={p.unique_code}>
                       <TableCell sx={{ fontFamily: "monospace" }}>{p.unique_code}</TableCell>
                       <TableCell>{p.product_type}</TableCell>
+                      <TableCell>
+                        <RoleBadge roleName={p.team_role_name} groupName={p.team_group_name} />
+                      </TableCell>
                       <TableCell align="right">{p.scan_count}</TableCell>
                     </TableRow>
                   ))
@@ -157,19 +206,43 @@ export default function AnalyticsPage() {
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
-          <ContentCard title="Top Teams" noPadding>
+          <ContentCard title={hasTeamStructure ? "Top Roles" : "Top Teams"} noPadding>
             <TableContainer>
               <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Team</TableCell>
+                  <TableCell>{hasTeamStructure ? "Role" : "Team"}</TableCell>
                   <TableCell align="right">Taps</TableCell>
                   <TableCell align="right">Leads</TableCell>
                   <TableCell align="right">Conv.</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {!overview?.top_campaigns.length ? (
+                {hasTeamStructure ? (
+                  !overview?.top_roles.length ? (
+                    <TableRow>
+                      <TableCell colSpan={4}>
+                        {loading ? "Loading…" : "No role data yet."}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    overview.top_roles.map((r) => (
+                      <TableRow key={r.role_id ?? r.role_name}>
+                        <TableCell>
+                          {r.role_name}
+                          {r.group_name && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                              {r.group_name}
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="right">{r.scan_count}</TableCell>
+                        <TableCell align="right">{r.lead_count}</TableCell>
+                        <TableCell align="right">{r.conversion_rate}%</TableCell>
+                      </TableRow>
+                    ))
+                  )
+                ) : !overview?.top_campaigns.length ? (
                   <TableRow>
                     <TableCell colSpan={4}>
                       {loading ? "Loading…" : "No team data yet."}
@@ -192,6 +265,33 @@ export default function AnalyticsPage() {
         </Grid>
       </Grid>
 
+      {(overview?.top_events?.length ?? 0) > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <ContentCard title="Performance by event" noPadding>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Event</TableCell>
+                    <TableCell align="right">Taps</TableCell>
+                    <TableCell align="right">Leads</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {overview!.top_events!.map((row) => (
+                    <TableRow key={row.event_tag}>
+                      <TableCell sx={{ fontFamily: "monospace" }}>{row.event_tag}</TableCell>
+                      <TableCell align="right">{row.scan_count}</TableCell>
+                      <TableCell align="right">{row.lead_count}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </ContentCard>
+        </Box>
+      )}
+
       <Box sx={{ mb: 3 }}>
         <ContentCard title="Recent Taps" noPadding>
         <TableContainer>
@@ -200,7 +300,9 @@ export default function AnalyticsPage() {
             <TableRow>
               <TableCell>Time</TableCell>
               <TableCell>Card</TableCell>
+              <TableCell>Role</TableCell>
               <TableCell>Team</TableCell>
+              <TableCell>Event</TableCell>
               <TableCell>Device</TableCell>
               <TableCell>Location</TableCell>
             </TableRow>
@@ -208,7 +310,7 @@ export default function AnalyticsPage() {
           <TableBody>
             {interactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={7}>
                   {loading ? "Loading…" : "Tap a card to see interaction history here."}
                 </TableCell>
               </TableRow>
@@ -224,7 +326,11 @@ export default function AnalyticsPage() {
                       {event.product_type}
                     </Typography>
                   </TableCell>
+                  <TableCell>
+                    <RoleBadge roleName={event.team_role_name} groupName={event.team_group_name} />
+                  </TableCell>
                   <TableCell>{event.campaign_name}</TableCell>
+                  <TableCell>{event.event_tag ?? "—"}</TableCell>
                   <TableCell>{event.device_type ?? "—"}</TableCell>
                   <TableCell>
                     {[event.city, event.country].filter(Boolean).join(", ") || "—"}
@@ -247,13 +353,15 @@ export default function AnalyticsPage() {
               <TableCell>Email</TableCell>
               <TableCell>Company</TableCell>
               <TableCell>Card</TableCell>
+              <TableCell>Role</TableCell>
               <TableCell>Team</TableCell>
+              <TableCell>Event</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={7}>
                   {loading ? "Loading…" : "Leads from card contact forms appear here."}
                 </TableCell>
               </TableRow>
@@ -264,7 +372,11 @@ export default function AnalyticsPage() {
                   <TableCell>{lead.email}</TableCell>
                   <TableCell>{lead.company ?? "—"}</TableCell>
                   <TableCell sx={{ fontFamily: "monospace" }}>{lead.product_code}</TableCell>
+                  <TableCell>
+                    <RoleBadge roleName={lead.team_role_name} groupName={lead.team_group_name} />
+                  </TableCell>
                   <TableCell>{lead.campaign_name}</TableCell>
+                  <TableCell>{lead.event_tag ?? "—"}</TableCell>
                 </TableRow>
               ))
             )}

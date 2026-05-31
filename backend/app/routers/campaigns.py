@@ -12,6 +12,7 @@ from app.database import get_db
 from app.models import Campaign, Product, User
 from app.schemas import CampaignCreateBody, CampaignRead
 from app.services.access import get_company_campaign, require_company
+from app.services.permissions import require_admin
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
@@ -53,6 +54,7 @@ def create_campaign(
     user: Annotated[User, Depends(get_current_user_flexible)],
     db: Annotated[Session, Depends(get_db)],
 ) -> CampaignReadWithCount:
+    require_admin(user)
     company_id = require_company(user)
     if body.start_date and body.end_date and body.end_date < body.start_date:
         raise HTTPException(status_code=400, detail="end_date must be on or after start_date")
@@ -87,6 +89,7 @@ def update_campaign(
     user: Annotated[User, Depends(get_current_user_flexible)],
     db: Annotated[Session, Depends(get_db)],
 ) -> CampaignReadWithCount:
+    require_admin(user)
     company_id = require_company(user)
     campaign = get_company_campaign(db, campaign_id, company_id)
 
@@ -113,6 +116,7 @@ def delete_campaign(
     user: Annotated[User, Depends(get_current_user_flexible)],
     db: Annotated[Session, Depends(get_db)],
 ) -> None:
+    require_admin(user)
     company_id = require_company(user)
     campaign = get_company_campaign(db, campaign_id, company_id)
     db.query(Product).filter(Product.campaign_id == campaign.id).delete()

@@ -38,7 +38,15 @@ class Product(Base):
     landing_blocks: Mapped[Optional[list[dict[str, Any]]]] = mapped_column(JSON, nullable=True)
     linkedin_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     whatsapp: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    team_role_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    assigned_user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    event_tag: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     campaign: Mapped["Campaign"] = relationship(back_populates="products")
+    assigned_user: Mapped[Optional["User"]] = relationship(foreign_keys=[assigned_user_id])
     interactions: Mapped[list["Interaction"]] = relationship(back_populates="product")
     leads: Mapped[list["Lead"]] = relationship(back_populates="product")

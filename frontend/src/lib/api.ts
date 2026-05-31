@@ -20,7 +20,30 @@ export type UserProfile = {
     brand_phone?: string | null;
     default_meeting_url?: string | null;
     default_pdf_url?: string | null;
+    team_structure?: TeamStructure | null;
   } | null;
+};
+
+type TeamGroup = {
+  id: string;
+  name: string;
+  description?: string;
+  sort_order: number;
+  color?: string;
+};
+
+type TeamRole = {
+  id: string;
+  name: string;
+  group_id?: string | null;
+  description?: string;
+  sort_order: number;
+  color?: string;
+};
+
+export type TeamStructure = {
+  groups: TeamGroup[];
+  roles: TeamRole[];
 };
 
 export type CompanyBrand = NonNullable<UserProfile["company"]>;
@@ -68,6 +91,17 @@ export type Product = {
   landing_blocks?: unknown;
   linkedin_url: string | null;
   whatsapp: string | null;
+  team_role_id: string | null;
+  assigned_user_id: number | null;
+  event_tag: string | null;
+};
+
+export type CompanyMember = {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "company_user";
+  avatar_url?: string | null;
 };
 
 export type ProductPublic = {
@@ -93,6 +127,7 @@ export type ProductPublic = {
   brand_website?: string | null;
   linkedin_url?: string | null;
   whatsapp?: string | null;
+  event_tag?: string | null;
 };
 
 export type LandingPageUpdate = {
@@ -112,6 +147,7 @@ export type LandingPageUpdate = {
   landing_blocks?: unknown[] | null;
   linkedin_url?: string | null;
   whatsapp?: string | null;
+  event_tag?: string | null;
 };
 
 export type LeadEvent = {
@@ -123,6 +159,12 @@ export type LeadEvent = {
   email: string;
   phone: string | null;
   company: string | null;
+  created_at?: string | null;
+  team_role_id?: string | null;
+  team_role_name?: string | null;
+  team_group_id?: string | null;
+  team_group_name?: string | null;
+  event_tag?: string | null;
 };
 
 export type DashboardStats = {
@@ -134,13 +176,98 @@ export type DashboardStats = {
   conversion_rate: number;
 };
 
+type GrowthMetric = {
+  value: number;
+  growth_pct: number;
+  description: string;
+};
+
+export type DashboardAnalytics = {
+  total_taps: GrowthMetric;
+  unique_visitors: GrowthMetric;
+  leads_captured: GrowthMetric;
+  meetings_scheduled: GrowthMetric;
+  daily_scans: { date: string; scan_count: number }[];
+  card_performance: {
+    card_name: string;
+    card_code: string;
+    total_taps: number;
+    leads: number;
+    conversion_rate: number;
+    team_role_id?: string | null;
+    team_role_name?: string | null;
+    team_group_name?: string | null;
+  }[];
+  recent_activity: {
+    name: string;
+    location: string;
+    timestamp: string;
+    action: string;
+  }[];
+  by_state: { state: string; scan_count: number }[];
+  top_cities: { city: string; state: string | null; scan_count: number }[];
+  lead_funnel: {
+    card_taps: number;
+    profile_views: number;
+    contact_saved: number;
+    lead_submitted: number;
+    meeting_scheduled: number;
+    tap_to_view_pct: number;
+    view_to_contact_pct: number;
+    contact_to_lead_pct: number;
+    lead_to_meeting_pct: number;
+  };
+  networking_insights: {
+    most_active_day: string;
+    most_active_time: string;
+    top_performing_card: string;
+    average_conversion_rate: number;
+    total_profile_views: number;
+    average_session_duration: string;
+  };
+  team_leaderboard: {
+    rank: number;
+    name: string;
+    card_code: string;
+    card_taps: number;
+    leads: number;
+    meetings: number;
+    conversion_rate: number;
+    team_role_id?: string | null;
+    team_role_name?: string | null;
+    team_group_name?: string | null;
+  }[];
+  role_performance: {
+    role_id: string | null;
+    role_name: string;
+    group_name: string | null;
+    card_count: number;
+    total_taps: number;
+    leads: number;
+    conversion_rate: number;
+  }[];
+  ai_insights: string[];
+  lead_timelines: {
+    lead_id: number;
+    lead_name: string;
+    events: { timestamp: string; action: string }[];
+  }[];
+};
+
 export type AnalyticsOverview = {
   total_scans: number;
   scans_today: number;
   unique_products_scanned: number;
   total_leads: number;
   conversion_rate: number;
-  top_products: { unique_code: string; product_type: string; scan_count: number }[];
+  top_products: {
+    unique_code: string;
+    product_type: string;
+    scan_count: number;
+    team_role_id?: string | null;
+    team_role_name?: string | null;
+    team_group_name?: string | null;
+  }[];
   top_campaigns: {
     campaign_name: string;
     scan_count: number;
@@ -148,10 +275,51 @@ export type AnalyticsOverview = {
     conversion_rate: number;
   }[];
   leads_by_campaign: { campaign_name: string; lead_count: number }[];
+  top_roles: {
+    role_id: string | null;
+    role_name: string;
+    group_name: string | null;
+    scan_count: number;
+    lead_count: number;
+    conversion_rate: number;
+  }[];
+  leads_by_role: {
+    role_id: string | null;
+    role_name: string;
+    group_name: string | null;
+    lead_count: number;
+  }[];
   by_country: { country: string; scan_count: number }[];
   by_device: { device_type: string; scan_count: number }[];
   geo_points: { city: string | null; country: string; scan_count: number }[];
   daily_scans: { date: string; scan_count: number }[];
+  daily_leads: { date: string; lead_count: number }[];
+  top_events?: { event_tag: string; scan_count: number; lead_count: number }[];
+};
+
+export type MeetingEvent = {
+  id: number;
+  timestamp: string;
+  product_code: string;
+  product_type: string;
+  campaign_name: string;
+  card_name: string;
+  city: string | null;
+  country: string | null;
+  device_type: string | null;
+  team_role_id?: string | null;
+  team_role_name?: string | null;
+  team_group_name?: string | null;
+  event_tag?: string | null;
+};
+
+export type MeetingsListResponse = {
+  summary: {
+    total_clicks: number;
+    unique_cards: number;
+    cards_with_meeting_link: number;
+  };
+  events: MeetingEvent[];
 };
 
 export type InteractionEvent = {
@@ -164,6 +332,10 @@ export type InteractionEvent = {
   country: string | null;
   device_type: string | null;
   ip_address: string | null;
+  team_role_id?: string | null;
+  team_role_name?: string | null;
+  team_group_name?: string | null;
+  event_tag?: string | null;
 };
 
 export async function apiFetch<T>(
@@ -225,24 +397,6 @@ export async function getMe(token?: string): Promise<UserProfile> {
   return apiFetch<UserProfile>("/auth/me", { token });
 }
 
-export async function updateProfile(
-  data: { name?: string; avatar_url?: string | null },
-  token?: string
-): Promise<UserProfile> {
-  return apiFetch<UserProfile>("/auth/me", {
-    method: "PATCH",
-    token,
-    body: JSON.stringify(data),
-  });
-}
-
-export async function getAuthStatus(): Promise<{
-  firebase_configured: boolean;
-  message: string;
-}> {
-  return apiFetch("/auth/status");
-}
-
 export class ProductUnavailableError extends Error {
   constructor() {
     super("Product is not available");
@@ -290,9 +444,10 @@ export async function downloadAnalyticsExport(token?: string): Promise<void> {
 export async function submitLead(data: {
   product_code: string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string;
   company?: string;
+  event_tag?: string;
 }): Promise<void> {
   await apiFetch("/leads", {
     method: "POST",

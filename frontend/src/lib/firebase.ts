@@ -19,7 +19,7 @@ export function isFirebaseConfigured(): boolean {
 
 let app: FirebaseApp | undefined;
 
-export function getFirebaseApp(): FirebaseApp | null {
+function getFirebaseApp(): FirebaseApp | null {
   if (!isFirebaseConfigured()) return null;
   if (!app) {
     app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);

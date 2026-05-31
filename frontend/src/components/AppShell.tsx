@@ -1,6 +1,8 @@
 "use client";
 
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import InsightsIcon from "@mui/icons-material/Insights";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
@@ -27,22 +29,27 @@ import { useState } from "react";
 import UserAvatar from "@/components/UserAvatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
+import { isAdmin } from "@/lib/permissions";
 
 const drawerWidth = 260;
 
 const navItems = [
-  { label: "Overview", href: "/dashboard", icon: DashboardIcon },
-  { label: "Business cards", href: "/products", icon: NfcIcon },
-  { label: "Leads", href: "/leads", icon: PeopleOutlinedIcon },
-  { label: "Analytics", href: "/analytics", icon: InsightsIcon },
-  { label: "Enterprise", href: "/enterprise", icon: BusinessCenterOutlinedIcon },
-  { label: "Brand kit", href: "/settings", icon: PaletteOutlinedIcon },
+  { label: "Dashboard", href: "/dashboard", icon: DashboardIcon, adminOnly: false },
+  { label: "Business cards", href: "/products", icon: NfcIcon, adminOnly: false },
+  { label: "Team organization", href: "/team", icon: AccountTreeOutlinedIcon, adminOnly: true },
+  { label: "Leads", href: "/leads", icon: PeopleOutlinedIcon, adminOnly: false },
+  { label: "Meetings", href: "/meetings", icon: CalendarMonthOutlinedIcon, adminOnly: false },
+  { label: "Analytics", href: "/analytics", icon: InsightsIcon, adminOnly: false },
+  { label: "Enterprise", href: "/enterprise", icon: BusinessCenterOutlinedIcon, adminOnly: true },
+  { label: "Brand kit", href: "/settings", icon: PaletteOutlinedIcon, adminOnly: true },
 ];
 
 const pageTitles: Record<string, string> = {
-  "/dashboard": "Overview",
+  "/dashboard": "Dashboard",
   "/products": "Business cards",
+  "/team": "Team organization",
   "/leads": "Leads",
+  "/meetings": "Meetings",
   "/analytics": "Analytics",
   "/enterprise": "Enterprise",
   "/settings": "Brand kit",
@@ -55,6 +62,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
   const pageTitle = pageTitles[pathname] ?? APP_NAME;
+  const userIsAdmin = isAdmin(profile?.user.role);
+  const visibleNavItems = navItems.filter((item) => userIsAdmin || !item.adminOnly);
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
@@ -99,7 +108,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </Box>
 
         <List component="nav" sx={{ px: 0, flex: 1 }}>
-          {navItems.map(({ label, href, icon: Icon }) => {
+          {visibleNavItems.map(({ label, href, icon: Icon }) => {
             const selected = pathname === href;
             return (
               <ListItemButton
@@ -189,8 +198,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {profile && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Chip
-                label={profile.user.role === "admin" ? "Admin" : "Member"}
+                label={userIsAdmin ? "Admin" : "Member"}
                 size="small"
+                color={userIsAdmin ? "primary" : "default"}
                 variant="outlined"
                 sx={{ display: { xs: "none", sm: "flex" } }}
               />

@@ -17,14 +17,18 @@ import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
 
 import ContentCard from "@/components/ui/ContentCard";
+import RoleBadge from "@/components/team/RoleBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
 import type { AnalyticsOverview, DashboardStats } from "@/lib/api";
+import { parseTeamStructure } from "@/lib/teamStructure";
 
 export default function EnterprisePage() {
   const { profile } = useAuth();
+  const teamStructure = parseTeamStructure(profile?.company?.team_structure);
+  const hasTeamStructure = teamStructure.groups.length > 0 || teamStructure.roles.length > 0;
   const { request } = useApi();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
@@ -92,13 +96,14 @@ export default function EnterprisePage() {
                 <TableHead>
                   <TableRow>
                     <TableCell>Card</TableCell>
+                    <TableCell>Role</TableCell>
                     <TableCell align="right">Taps</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {!overview?.top_products.length ? (
                     <TableRow>
-                      <TableCell colSpan={2}>{loading ? "Loading…" : "No card activity yet."}</TableCell>
+                      <TableCell colSpan={3}>{loading ? "Loading…" : "No card activity yet."}</TableCell>
                     </TableRow>
                   ) : (
                     overview.top_products.slice(0, 8).map((p) => (
@@ -106,6 +111,9 @@ export default function EnterprisePage() {
                         <TableCell>
                           <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600 }}>{p.unique_code}</Typography>
                           <Typography variant="caption" color="text.secondary">{p.product_type}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <RoleBadge roleName={p.team_role_name} groupName={p.team_group_name} />
                         </TableCell>
                         <TableCell align="right">{p.scan_count}</TableCell>
                       </TableRow>
@@ -118,17 +126,37 @@ export default function EnterprisePage() {
         </Grid>
 
         <Grid size={{ xs: 12, md: 6 }}>
-          <ContentCard title="Lead Sources by Team" noPadding>
+          <ContentCard title={hasTeamStructure ? "Lead Sources by Role" : "Lead Sources by Team"} noPadding>
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Team</TableCell>
+                    <TableCell>{hasTeamStructure ? "Role" : "Team"}</TableCell>
                     <TableCell align="right">Leads</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {!overview?.leads_by_campaign.length ? (
+                  {hasTeamStructure ? (
+                    !overview?.leads_by_role.length ? (
+                      <TableRow>
+                        <TableCell colSpan={2}>{loading ? "Loading…" : "No leads captured yet."}</TableCell>
+                      </TableRow>
+                    ) : (
+                      overview.leads_by_role.map((row) => (
+                        <TableRow key={row.role_id ?? row.role_name}>
+                          <TableCell>
+                            {row.role_name}
+                            {row.group_name && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                                {row.group_name}
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell align="right">{row.lead_count}</TableCell>
+                        </TableRow>
+                      ))
+                    )
+                  ) : !overview?.leads_by_campaign.length ? (
                     <TableRow>
                       <TableCell colSpan={2}>{loading ? "Loading…" : "No leads captured yet."}</TableCell>
                     </TableRow>

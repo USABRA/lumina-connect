@@ -10,7 +10,19 @@ from app.config import settings
 from app.database import engine, get_db
 from app.services.db_stats import get_db_stats
 
-from app.routers import analytics, auth, campaigns, companies, leads, products, tracking, uploads
+from app.routers import (
+    analytics,
+    auth,
+    campaigns,
+    companies,
+    leads,
+    meeting_join,
+    meeting_sessions,
+    meetings,
+    products,
+    tracking,
+    uploads,
+)
 
 app = FastAPI(
     title="Lumina Connect API",
@@ -33,6 +45,9 @@ app.include_router(products.router)
 app.include_router(tracking.router)
 app.include_router(analytics.router)
 app.include_router(leads.router)
+app.include_router(meetings.router)
+app.include_router(meeting_sessions.router)
+app.include_router(meeting_join.router)
 app.include_router(uploads.router)
 
 upload_path = Path(settings.upload_dir)

@@ -1,13 +1,8 @@
 "use client";
 
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import DownloadIcon from "@mui/icons-material/Download";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import NfcIcon from "@mui/icons-material/Nfc";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PrintIcon from "@mui/icons-material/Print";
-import QrCode2Icon from "@mui/icons-material/QrCode2";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -16,30 +11,23 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import IconButton from "@mui/material/IconButton";
-import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "react-qr-code";
 
+import CardsByRoleView from "@/components/products/CardsByRoleView";
 import NfcCardEditDialog from "@/components/products/NfcCardEditDialog";
 import NfcCardQuickCreate from "@/components/products/NfcCardQuickCreate";
 import QrPrintSheet from "@/components/products/QrPrintSheet";
-import ContentCard from "@/components/ui/ContentCard";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
-import type { Campaign, CompanyBrand, Product } from "@/lib/api";
+import type { Campaign, CompanyBrand, CompanyMember, Product } from "@/lib/api";
+import { isAdmin } from "@/lib/permissions";
 import { landingConfigToPayload, type LandingPageConfig } from "@/lib/landingTemplates";
+import { parseTeamStructure } from "@/lib/teamStructure";
 import { downloadSvgAsPng } from "@/lib/qrDownload";
 
 export default function TeamCardsPage() {
@@ -55,10 +43,14 @@ export default function TeamCardsPage() {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [qrProduct, setQrProduct] = useState<Product | null>(null);
   const [qrSheetOpen, setQrSheetOpen] = useState(false);
+  const [members, setMembers] = useState<CompanyMember[]>([]);
   const qrPreviewRef = useRef<HTMLDivElement>(null);
 
+  const userIsAdmin = isAdmin(profile?.user.role);
   const companyName = profile?.company?.company_name ?? "Your company";
   const brandReady = Boolean(companyBrand?.brand_logo_url || companyBrand?.brand_tagline);
+  const teamStructure = parseTeamStructure(companyBrand?.team_structure);
+  const hasTeamStructure = teamStructure.groups.length > 0 || teamStructure.roles.length > 0;
 
   const loadCards = useCallback(async () => {
     if (!campaignId) {
@@ -74,11 +66,15 @@ export default function TeamCardsPage() {
       setLoading(true);
       setError("");
       try {
-        const [camps, brand] = await Promise.all([
+        const [camps, brand, membersList] = await Promise.all([
           request<Campaign[]>("/campaigns"),
           request<CompanyBrand>("/companies/brand"),
+          userIsAdmin
+            ? request<CompanyMember[]>("/companies/members")
+            : Promise.resolve([] as CompanyMember[]),
         ]);
         setCompanyBrand(brand);
+        setMembers(membersList);
         if (camps.length > 0) {
           setCampaignId(camps[0].id);
         }
@@ -88,7 +84,7 @@ export default function TeamCardsPage() {
         setLoading(false);
       }
     })();
-  }, [request]);
+  }, [request, userIsAdmin]);
 
   useEffect(() => {
     if (campaignId) {
@@ -101,6 +97,8 @@ export default function TeamCardsPage() {
   async function handleNfcCreate(payload: {
     product_type: string;
     unique_code?: string;
+    team_role_id?: string | null;
+    assigned_user_id?: number | null;
     landing: LandingPageConfig;
   }) {
     if (!campaignId) return;
@@ -113,6 +111,8 @@ export default function TeamCardsPage() {
           campaign_id: campaignId,
           product_type: payload.product_type,
           unique_code: payload.unique_code,
+          team_role_id: payload.team_role_id ?? null,
+          assigned_user_id: payload.assigned_user_id ?? null,
           landing: landingConfigToPayload(payload.landing),
         }),
       });
@@ -126,15 +126,29 @@ export default function TeamCardsPage() {
     }
   }
 
-  async function handleEditSave(landing: LandingPageConfig) {
+  async function handleEditSave(payload: {
+    landing: LandingPageConfig;
+    team_role_id: string | null;
+    assigned_user_id?: number | null;
+  }) {
     if (!editProduct) return;
     setSaving(true);
     setError("");
     try {
       await request(`/products/${editProduct.id}/landing`, {
         method: "PUT",
-        body: JSON.stringify(landingConfigToPayload(landing)),
+        body: JSON.stringify(landingConfigToPayload(payload.landing)),
       });
+      if (userIsAdmin) {
+        const productUpdate: Record<string, unknown> = { team_role_id: payload.team_role_id };
+        if ("assigned_user_id" in payload) {
+          productUpdate.assigned_user_id = payload.assigned_user_id ?? null;
+        }
+        await request(`/products/${editProduct.id}`, {
+          method: "PUT",
+          body: JSON.stringify(productUpdate),
+        });
+      }
       setEditProduct(null);
       await loadCards();
     } catch (err) {
@@ -169,6 +183,19 @@ export default function TeamCardsPage() {
     }
   }
 
+  async function handleRoleChange(card: Product, roleId: string | null) {
+    if (card.team_role_id === roleId) return;
+    try {
+      await request(`/products/${card.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ team_role_id: roleId }),
+      });
+      await loadCards();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update role");
+    }
+  }
+
   function copyUrl(url: string) {
     navigator.clipboard.writeText(url);
   }
@@ -183,33 +210,52 @@ export default function TeamCardsPage() {
     <Box>
       <PageHeader
         title="Business cards"
-        subtitle="Digital identity for every team member — NFC tap, QR share, lead capture, and profile links."
+        subtitle={
+          userIsAdmin
+            ? "Digital identity for every team member — NFC tap, QR share, lead capture, and profile links."
+            : "Your digital business card — edit your profile, share your link, and track your leads."
+        }
         action={
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-            <Button
-              variant="outlined"
-              startIcon={<PrintIcon />}
-              disabled={cards.length === 0}
-              onClick={() => setQrSheetOpen(true)}
-            >
-              Print QR sheet
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<NfcIcon />}
-              disabled={!campaignId}
-              onClick={() => setNfcOpen(true)}
-            >
-              Add team member
-            </Button>
-          </Box>
+          userIsAdmin ? (
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              <Button
+                variant="outlined"
+                startIcon={<PrintIcon />}
+                disabled={cards.length === 0}
+                onClick={() => setQrSheetOpen(true)}
+              >
+                Print QR sheet
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<NfcIcon />}
+                disabled={!campaignId}
+                onClick={() => setNfcOpen(true)}
+              >
+                Add team member
+              </Button>
+            </Box>
+          ) : undefined
         }
       />
 
-      {!brandReady && (
+      {!brandReady && userIsAdmin && (
         <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
           Set up your company look first in{" "}
           <Link href="/settings">Brand kit</Link> — logo, colors and default links apply to every card.
+        </Alert>
+      )}
+
+      {!userIsAdmin && cards.length === 0 && !loading && (
+        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+          You do not have a business card assigned yet. Ask your company admin to create one and assign it to you.
+        </Alert>
+      )}
+
+      {!hasTeamStructure && userIsAdmin && cards.length > 0 && (
+        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+          Organize cards by cargo in{" "}
+          <Link href="/team">Team organization</Link> — create departments and roles however you want.
         </Alert>
       )}
 
@@ -219,93 +265,41 @@ export default function TeamCardsPage() {
         </Alert>
       )}
 
-      <ContentCard noPadding>
-        {loading ? (
-          <Box sx={{ p: 4, textAlign: "center" }}>
-            <Typography color="text.secondary">Loading team cards…</Typography>
-          </Box>
-        ) : cards.length === 0 ? (
-          <EmptyState
-            icon={NfcIcon}
-            title="No cards yet"
-            description="Add your first team member to generate a digital NFC business card with tap-to-call, email and booking links."
-            action={
+      {loading ? (
+        <Box sx={{ p: 4, textAlign: "center" }}>
+          <Typography color="text.secondary">Loading team cards…</Typography>
+        </Box>
+      ) : cards.length === 0 ? (
+        <EmptyState
+          icon={NfcIcon}
+          title={userIsAdmin ? "No cards yet" : "No card assigned"}
+          description={
+            userIsAdmin
+              ? "Add your first team member to generate a digital NFC business card with tap-to-call, email and booking links."
+              : "Your admin can create a card and assign it to your account."
+          }
+          action={
+            userIsAdmin ? (
               <Button variant="contained" startIcon={<NfcIcon />} onClick={() => setNfcOpen(true)}>
                 Add team member
               </Button>
-            }
-          />
-        ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Card link</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {cards.map((card) => (
-                  <TableRow key={card.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        {card.landing_headline || "—"}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontFamily: "monospace" }}>
-                        {card.unique_code}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{card.highlight_1 || "—"}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography variant="body2" noWrap sx={{ maxWidth: 160 }}>
-                          {card.qr_url}
-                        </Typography>
-                        {card.qr_url && (
-                          <>
-                            <IconButton size="small" onClick={() => copyUrl(card.qr_url!)}>
-                              <ContentCopyIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton size="small" component="a" href={card.qr_url!} target="_blank">
-                              <OpenInNewIcon fontSize="small" />
-                            </IconButton>
-                          </>
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        size="small"
-                        value={card.status}
-                        onChange={(e) => handleStatusChange(card, e.target.value as Product["status"])}
-                        sx={{ minWidth: 110, textTransform: "capitalize" }}
-                      >
-                        <MenuItem value="active">Active</MenuItem>
-                        <MenuItem value="inactive">Inactive</MenuItem>
-                        <MenuItem value="archived">Archived</MenuItem>
-                      </Select>
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton aria-label="edit" size="small" onClick={() => setEditProduct(card)}>
-                        <EditOutlinedIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton aria-label="qr" size="small" onClick={() => setQrProduct(card)}>
-                        <QrCode2Icon fontSize="small" />
-                      </IconButton>
-                      <IconButton aria-label="delete" size="small" onClick={() => handleDelete(card)}>
-                        <DeleteOutlinedIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </ContentCard>
+            ) : undefined
+          }
+        />
+      ) : (
+        <CardsByRoleView
+          cards={cards}
+          structure={teamStructure}
+          canManage={userIsAdmin}
+          members={members}
+          onEdit={setEditProduct}
+          onQr={setQrProduct}
+          onDelete={handleDelete}
+          onStatusChange={handleStatusChange}
+          onRoleChange={handleRoleChange}
+          copyUrl={copyUrl}
+        />
+      )}
 
       <Dialog open={!!qrProduct} onClose={() => setQrProduct(null)} maxWidth="xs" fullWidth>
         <DialogTitle>NFC / QR — {qrProduct?.landing_headline || qrProduct?.unique_code}</DialogTitle>
@@ -336,6 +330,7 @@ export default function TeamCardsPage() {
         open={nfcOpen}
         onClose={() => setNfcOpen(false)}
         onCreate={handleNfcCreate}
+        members={members}
         brand={companyBrand}
         companyName={companyName}
         campaignName={companyName}
@@ -348,6 +343,8 @@ export default function TeamCardsPage() {
         product={editProduct}
         brand={companyBrand}
         companyName={companyName}
+        members={members}
+        userRole={profile?.user.role}
         onSave={handleEditSave}
         saving={saving}
       />

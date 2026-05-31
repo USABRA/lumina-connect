@@ -3,6 +3,7 @@
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
@@ -28,12 +29,16 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import RoleBadge from "@/components/team/RoleBadge";
+import TeamStructureFilter from "@/components/team/TeamStructureFilter";
 import ContentCard from "@/components/ui/ContentCard";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
+import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
 import type { LeadEvent } from "@/lib/api";
+import { buildLeadSections, parseTeamStructure } from "@/lib/teamStructure";
 
 function LeadTable({ leads }: { leads: LeadEvent[] }) {
   return (
@@ -44,7 +49,9 @@ function LeadTable({ leads }: { leads: LeadEvent[] }) {
             <TableCell>Name</TableCell>
             <TableCell>Contact</TableCell>
             <TableCell>Company</TableCell>
+            <TableCell>Role</TableCell>
             <TableCell>Card</TableCell>
+            <TableCell>Event</TableCell>
             <TableCell align="right">Actions</TableCell>
           </TableRow>
         </TableHead>
@@ -58,7 +65,13 @@ function LeadTable({ leads }: { leads: LeadEvent[] }) {
               </TableCell>
               <TableCell>
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
-                  <Typography variant="body2">{lead.email}</Typography>
+                  {lead.email ? (
+                    <Typography variant="body2">{lead.email}</Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No email
+                    </Typography>
+                  )}
                   {lead.phone && (
                     <Typography variant="caption" color="text.secondary">
                       {lead.phone}
@@ -66,20 +79,44 @@ function LeadTable({ leads }: { leads: LeadEvent[] }) {
                   )}
                 </Box>
               </TableCell>
-              <TableCell>{lead.company ?? "—"}</TableCell>
               <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
-                  {lead.product_code}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {lead.product_type}
-                </Typography>
+                {lead.company ? (
+                  <Typography variant="body2" sx={{ maxWidth: 200 }} noWrap title={lead.company}>
+                    {lead.company}
+                  </Typography>
+                ) : (
+                  "—"
+                )}
               </TableCell>
+              <TableCell>
+                <RoleBadge roleName={lead.team_role_name} groupName={lead.team_group_name} />
+              </TableCell>
+              <TableCell>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                  <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
+                    {lead.product_code}
+                  </Typography>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, alignItems: "center" }}>
+                    <Typography variant="caption" color="text.secondary">
+                      {lead.product_type}
+                    </Typography>
+                    <Chip label="Form" size="small" variant="outlined" sx={{ height: 20, fontSize: "0.65rem" }} />
+                  </Box>
+                </Box>
+              </TableCell>
+              <TableCell>{lead.event_tag ?? "—"}</TableCell>
               <TableCell align="right">
                 <Tooltip title="Send email">
-                  <IconButton size="small" component="a" href={`mailto:${lead.email}`}>
-                    <EmailOutlinedIcon fontSize="small" />
-                  </IconButton>
+                  <span>
+                    <IconButton
+                      size="small"
+                      component="a"
+                      href={lead.email ? `mailto:${lead.email}` : undefined}
+                      disabled={!lead.email}
+                    >
+                      <EmailOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </span>
                 </Tooltip>
                 <Tooltip title="View landing page">
                   <IconButton
@@ -103,23 +140,35 @@ function LeadTable({ leads }: { leads: LeadEvent[] }) {
 
 export default function LeadsPage() {
   const { request } = useApi();
+  const { profile } = useAuth();
+  const teamStructure = parseTeamStructure(profile?.company?.team_structure);
+  const hasTeamStructure = teamStructure.groups.length > 0 || teamStructure.roles.length > 0;
+
   const [leads, setLeads] = useState<LeadEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [filterGroupId, setFilterGroupId] = useState<string | null>(null);
+  const [filterRoleId, setFilterRoleId] = useState<string | null>(null);
+  const [filterEventTag, setFilterEventTag] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const data = await request<LeadEvent[]>("/leads?limit=100");
+      const params = new URLSearchParams({ limit: "100" });
+      if (filterRoleId) params.set("role_id", filterRoleId);
+      else if (filterGroupId) params.set("group_id", filterGroupId);
+      const eventTag = filterEventTag.trim();
+      if (eventTag) params.set("event_tag", eventTag);
+      const data = await request<LeadEvent[]>(`/leads?${params.toString()}`);
       setLeads(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load leads");
     } finally {
       setLoading(false);
     }
-  }, [request]);
+  }, [request, filterGroupId, filterRoleId, filterEventTag]);
 
   useEffect(() => {
     load();
@@ -137,6 +186,9 @@ export default function LeadsPage() {
         lead.product_code,
         lead.product_type,
         lead.campaign_name,
+        lead.team_role_name ?? "",
+        lead.team_group_name ?? "",
+        lead.event_tag ?? "",
       ]
         .join(" ")
         .toLowerCase();
@@ -156,8 +208,14 @@ export default function LeadsPage() {
     );
   }, [filtered]);
 
+  const leadSections = useMemo(
+    () => (hasTeamStructure ? buildLeadSections(filtered, teamStructure) : []),
+    [filtered, hasTeamStructure, teamStructure]
+  );
+
   const withPhone = leads.filter((lead) => lead.phone).length;
   const withCompany = leads.filter((lead) => lead.company).length;
+  const uniqueRoles = new Set(leads.map((lead) => lead.team_role_id).filter(Boolean)).size;
   const uniqueCampaigns = new Set(leads.map((lead) => lead.campaign_name)).size;
 
   return (
@@ -213,9 +271,9 @@ export default function LeadsPage() {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            label="Teams"
-            value={uniqueCampaigns}
-            icon={CampaignOutlinedIcon}
+            label={hasTeamStructure ? "Roles" : "Teams"}
+            value={hasTeamStructure ? uniqueRoles : uniqueCampaigns}
+            icon={hasTeamStructure ? GroupsOutlinedIcon : CampaignOutlinedIcon}
             color="#4f46e5"
             loading={loading}
           />
@@ -237,7 +295,7 @@ export default function LeadsPage() {
       >
         <TextField
           size="small"
-          placeholder="Search across all campaigns…"
+          placeholder={hasTeamStructure ? "Search leads, roles, cards…" : "Search across all campaigns…"}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ flex: 1, minWidth: 220, maxWidth: 420 }}
@@ -250,6 +308,23 @@ export default function LeadsPage() {
               ),
             },
           }}
+        />
+        {hasTeamStructure && (
+          <TeamStructureFilter
+            structure={teamStructure}
+            groupId={filterGroupId}
+            roleId={filterRoleId}
+            onGroupChange={setFilterGroupId}
+            onRoleChange={setFilterRoleId}
+          />
+        )}
+        <TextField
+          size="small"
+          label="Event tag"
+          placeholder="feira-sp-2026"
+          value={filterEventTag}
+          onChange={(e) => setFilterEventTag(e.target.value)}
+          sx={{ minWidth: 180 }}
         />
         <Typography variant="body2" color="text.secondary">
           {filtered.length} lead{filtered.length === 1 ? "" : "s"}
@@ -284,6 +359,54 @@ export default function LeadsPage() {
             </Typography>
           </Box>
         </ContentCard>
+      ) : hasTeamStructure ? (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+          {leadSections.map((section) => {
+            const leadCount = section.roles.reduce((n, r) => n + r.leads.length, 0);
+            return (
+              <ContentCard
+                key={section.key}
+                title={section.title}
+                action={
+                  <Chip
+                    icon={<PeopleOutlinedIcon sx={{ fontSize: "16px !important" }} />}
+                    label={`${leadCount} lead${leadCount === 1 ? "" : "s"}`}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                }
+                noPadding
+              >
+                {section.subtitle && (
+                  <Typography variant="body2" color="text.secondary" sx={{ px: 2.5, pt: 2 }}>
+                    {section.subtitle}
+                  </Typography>
+                )}
+                {section.roles.map(({ role, leads: roleLeads }) => (
+                  <Box key={role?.id ?? "unassigned"}>
+                    {role && (
+                      <Box
+                        sx={{
+                          px: 2.5,
+                          py: 1.5,
+                          bgcolor: "action.hover",
+                          borderTop: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      >
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          {role.name}
+                        </Typography>
+                      </Box>
+                    )}
+                    <LeadTable leads={roleLeads} />
+                  </Box>
+                ))}
+              </ContentCard>
+            );
+          })}
+        </Box>
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
           {leadsByCampaign.map(([campaignName, campaignLeads]) => (

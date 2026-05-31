@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
-from sqlalchemy import Enum, String
+from sqlalchemy import Enum, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -26,6 +26,7 @@ class Company(Base):
     brand_phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     default_meeting_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     default_pdf_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    team_structure: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
 
     users: Mapped[list["User"]] = relationship(back_populates="company")
     campaigns: Mapped[list["Campaign"]] = relationship(back_populates="company")
