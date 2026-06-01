@@ -208,7 +208,7 @@ export default function MeetingHostPage({ meetingId }: { meetingId: number }) {
           />
         </Box>
 
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, "& .MuiButton-root": { width: { xs: "100%", sm: "auto" }, minHeight: 44 } }}>
           <Button
             variant="outlined"
             startIcon={<ContentCopyIcon />}

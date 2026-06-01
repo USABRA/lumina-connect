@@ -150,7 +150,7 @@ export default function TeamOrganizationPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
         <Typography variant="h6" sx={{ fontWeight: 700 }}>Departments & roles</Typography>
         <Button startIcon={<AddIcon />} onClick={addGroup} disabled={loading}>
           Add department
@@ -189,19 +189,19 @@ export default function TeamOrganizationPage() {
                     label="Department name"
                     value={group.name}
                     onChange={(e) => updateGroup(group.id, { name: e.target.value })}
-                    sx={{ flex: 1, minWidth: 200 }}
+                    sx={{ flex: 1, minWidth: { xs: "100%", sm: 200 } }}
                   />
                   <TextField
                     label="Description"
                     value={group.description ?? ""}
                     onChange={(e) => updateGroup(group.id, { description: e.target.value })}
-                    sx={{ flex: 2, minWidth: 220 }}
+                    sx={{ flex: 2, minWidth: { xs: "100%", sm: 220 } }}
                   />
                   <TextField
                     label="Color"
                     value={group.color ?? ""}
                     onChange={(e) => updateGroup(group.id, { color: e.target.value })}
-                    sx={{ width: 120 }}
+                    sx={{ width: { xs: "100%", sm: 120 } }}
                   />
                   <Box sx={{ display: "flex", gap: 0.5 }}>
                     <IconButton size="small" onClick={() => moveGroup(group.id, -1)} aria-label="Move up">

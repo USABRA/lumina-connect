@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     lead_notify_emails: str = ""
     upload_dir: str = "uploads"
     api_public_url: str = ""
+    platform_admin_emails: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -43,6 +44,10 @@ class Settings(BaseSettings):
     @property
     def lead_notify_emails_list(self) -> list[str]:
         return [email.strip() for email in self.lead_notify_emails.split(",") if email.strip()]
+
+    @property
+    def platform_admin_emails_list(self) -> list[str]:
+        return [email.strip().lower() for email in self.platform_admin_emails.split(",") if email.strip()]
 
 
 settings = Settings()

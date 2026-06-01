@@ -19,6 +19,7 @@ from app.routers import (
     meeting_join,
     meeting_sessions,
     meetings,
+    platform,
     products,
     tracking,
     uploads,
@@ -49,6 +50,7 @@ app.include_router(meetings.router)
 app.include_router(meeting_sessions.router)
 app.include_router(meeting_join.router)
 app.include_router(uploads.router)
+app.include_router(platform.router)
 
 upload_path = Path(settings.upload_dir)
 upload_path.mkdir(parents=True, exist_ok=True)

@@ -28,6 +28,11 @@ class CompanyRead(CompanyBase):
     brand_phone: Optional[str] = None
     default_meeting_url: Optional[str] = None
     default_pdf_url: Optional[str] = None
+    white_label_enabled: bool = False
+    hide_platform_branding: bool = False
+    brand_display_name: Optional[str] = None
+    brand_favicon_url: Optional[str] = None
+    brand_secondary_color: Optional[str] = None
     team_structure: Optional[dict[str, Any]] = None
 
 
@@ -62,6 +67,11 @@ class CompanyBrandUpdate(BaseModel):
     brand_phone: Optional[str] = Field(default=None, max_length=50)
     default_meeting_url: Optional[str] = Field(default=None, max_length=500)
     default_pdf_url: Optional[str] = Field(default=None, max_length=500)
+    white_label_enabled: Optional[bool] = None
+    hide_platform_branding: Optional[bool] = None
+    brand_display_name: Optional[str] = Field(default=None, max_length=255)
+    brand_favicon_url: Optional[str] = Field(default=None, max_length=500)
+    brand_secondary_color: Optional[str] = Field(default=None, max_length=20)
 
 
 class UserBase(BaseModel):

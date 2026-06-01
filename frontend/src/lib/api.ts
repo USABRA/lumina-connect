@@ -20,8 +20,14 @@ export type UserProfile = {
     brand_phone?: string | null;
     default_meeting_url?: string | null;
     default_pdf_url?: string | null;
+    white_label_enabled?: boolean;
+    hide_platform_branding?: boolean;
+    brand_display_name?: string | null;
+    brand_favicon_url?: string | null;
+    brand_secondary_color?: string | null;
     team_structure?: TeamStructure | null;
   } | null;
+  is_platform_admin?: boolean;
 };
 
 type TeamGroup = {
@@ -57,6 +63,25 @@ export type CompanyBrandUpdate = {
   brand_phone?: string | null;
   default_meeting_url?: string | null;
   default_pdf_url?: string | null;
+  white_label_enabled?: boolean;
+  hide_platform_branding?: boolean;
+  brand_display_name?: string | null;
+  brand_favicon_url?: string | null;
+  brand_secondary_color?: string | null;
+};
+
+export type PlatformCompanySummary = {
+  id: number;
+  company_name: string;
+  brand_display_name: string | null;
+  brand_logo_url: string | null;
+  brand_color: string | null;
+  brand_tagline: string | null;
+  white_label_enabled: boolean;
+  hide_platform_branding: boolean;
+  product_count: number;
+  sample_card_codes: string[];
+  landing_base_url: string;
 };
 
 export type Campaign = {
@@ -130,6 +155,12 @@ export type ProductPublic = {
   highlight_3: string | null;
   landing_blocks?: unknown;
   brand_website?: string | null;
+  brand_tagline?: string | null;
+  brand_display_name?: string | null;
+  brand_favicon_url?: string | null;
+  brand_secondary_color?: string | null;
+  white_label_enabled?: boolean;
+  hide_platform_branding?: boolean;
   linkedin_url?: string | null;
   whatsapp?: string | null;
   event_tag?: string | null;
@@ -515,7 +546,12 @@ export async function uploadImage(file: File, token?: string): Promise<string> {
 
 export async function syncUser(
   token: string,
-  data: { name: string; company_name?: string }
+  data: {
+    name: string;
+    company_name?: string;
+    brand_logo_url?: string | null;
+    brand_color?: string | null;
+  }
 ): Promise<UserProfile> {
   return apiFetch<UserProfile>("/auth/sync", {
     method: "POST",
@@ -538,9 +574,22 @@ export async function registerUser(data: {
   email: string;
   password: string;
   company_name: string;
+  brand_logo_url?: string | null;
+  brand_color?: string | null;
 }): Promise<AuthTokenResponse> {
   return apiFetch<AuthTokenResponse>("/auth/register", {
     method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCompanyBrand(
+  token: string,
+  data: Pick<CompanyBrandUpdate, "brand_logo_url" | "brand_color">
+): Promise<CompanyBrand> {
+  return apiFetch<CompanyBrand>("/companies/brand", {
+    method: "PATCH",
+    token,
     body: JSON.stringify(data),
   });
 }

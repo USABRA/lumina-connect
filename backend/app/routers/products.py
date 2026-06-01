@@ -73,6 +73,12 @@ class ProductPublicRead(BaseModel):
     highlight_3: Optional[str] = None
     landing_blocks: Optional[list] = None
     brand_website: Optional[str] = None
+    brand_tagline: Optional[str] = None
+    brand_display_name: Optional[str] = None
+    brand_favicon_url: Optional[str] = None
+    brand_secondary_color: Optional[str] = None
+    white_label_enabled: bool = False
+    hide_platform_branding: bool = False
     linkedin_url: Optional[str] = None
     whatsapp: Optional[str] = None
     event_tag: Optional[str] = None
@@ -110,6 +116,12 @@ def _product_public(product: Product) -> ProductPublicRead:
         highlight_3=product.highlight_3,
         landing_blocks=product.landing_blocks,
         brand_website=company.brand_website,
+        brand_tagline=company.brand_tagline,
+        brand_display_name=company.brand_display_name or company.company_name,
+        brand_favicon_url=company.brand_favicon_url,
+        brand_secondary_color=company.brand_secondary_color,
+        white_label_enabled=company.white_label_enabled,
+        hide_platform_branding=company.hide_platform_branding or company.white_label_enabled,
         linkedin_url=product.linkedin_url,
         whatsapp=product.whatsapp,
         event_tag=product.event_tag,

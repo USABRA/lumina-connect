@@ -9,6 +9,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
+import { useFullScreenDialog } from "@/hooks/useFullScreenDialog";
 import { useState } from "react";
 
 type Props = {
@@ -23,6 +24,7 @@ type Props = {
 };
 
 export default function NewMeetingDialog({ open, onClose, onCreated, onSubmit }: Props) {
+  const fullScreen = useFullScreenDialog();
   const [title, setTitle] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [eventTag, setEventTag] = useState("");
@@ -55,7 +57,7 @@ export default function NewMeetingDialog({ open, onClose, onCreated, onSubmit }:
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <GroupsOutlinedIcon color="primary" />
         New collaborative meeting

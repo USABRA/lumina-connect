@@ -6,9 +6,11 @@ import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import InsightsIcon from "@mui/icons-material/Insights";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import MenuIcon from "@mui/icons-material/Menu";
 import NfcIcon from "@mui/icons-material/Nfc";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
+import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
@@ -22,14 +24,16 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import UserAvatar from "@/components/UserAvatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
-import { isAdmin } from "@/lib/permissions";
+import { APP_NAME, APP_TAGLINE, DEFAULT_BRAND_COLOR, hexToRgba } from "@/lib/branding";
+import { isAdmin, isPlatformAdmin } from "@/lib/permissions";
 
 const drawerWidth = 260;
 
@@ -58,134 +62,326 @@ const pageTitles: Record<string, string> = {
   "/account": "Account",
 };
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const { profile, logout } = useAuth();
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+const drawerPaperSx = {
+  width: drawerWidth,
+  maxWidth: "100vw",
+  boxSizing: "border-box" as const,
+  borderRight: "1px solid",
+  borderColor: "divider",
+  bgcolor: "#0f172a",
+  color: "#f8fafc",
+  overflowX: "hidden",
+};
 
-  const pageTitle = pageTitles[pathname] ?? APP_NAME;
-  const userIsAdmin = isAdmin(profile?.user.role);
-  const visibleNavItems = navItems.filter((item) => userIsAdmin || !item.adminOnly);
+const sidebarBrandLogoSx = {
+  display: "block",
+  maxWidth: "100%",
+  width: "auto",
+  height: "auto",
+  maxHeight: 48,
+  objectFit: "contain" as const,
+  flexShrink: 1,
+  minWidth: 0,
+};
 
+const sidebarBrandBlockSx = {
+  minWidth: 0,
+  width: "100%",
+  display: "flex",
+  flexDirection: "column" as const,
+  alignItems: "center",
+  textAlign: "center" as const,
+};
+
+const sidebarBrandTitleSx = {
+  fontWeight: 800,
+  lineHeight: 1.2,
+  color: "white",
+  textAlign: "center" as const,
+  width: "100%",
+  wordBreak: "break-word" as const,
+  overflow: "hidden",
+  display: "-webkit-box",
+  WebkitBoxOrient: "vertical" as const,
+  WebkitLineClamp: 2,
+};
+
+const sidebarBrandSubtitleSx = {
+  color: "#94a3b8",
+  textAlign: "center" as const,
+  width: "100%",
+  wordBreak: "break-word" as const,
+  overflow: "hidden",
+  display: "-webkit-box",
+  WebkitBoxOrient: "vertical" as const,
+  WebkitLineClamp: 2,
+  mt: 0.25,
+};
+
+type DrawerNavProps = {
+  pathname: string;
+  showPlatformNav: boolean;
+  visibleNavItems: typeof navItems;
+  navSelectedBg: string;
+  navSelectedHoverBg: string;
+  accountSelectedBg: string;
+  brandLogoUrl: string | null;
+  brandColor: string;
+  sidebarTitle: string;
+  sidebarSubtitle: string;
+  profile: ReturnType<typeof useAuth>["profile"];
+  onNavigate?: () => void;
+};
+
+function DrawerNav({
+  pathname,
+  showPlatformNav,
+  visibleNavItems,
+  navSelectedBg,
+  navSelectedHoverBg,
+  accountSelectedBg,
+  brandLogoUrl,
+  brandColor,
+  sidebarTitle,
+  sidebarSubtitle,
+  profile,
+  onNavigate,
+}: DrawerNavProps) {
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
-      <Drawer
-        variant="permanent"
+    <>
+      <Box
         sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
-            width: drawerWidth,
-            boxSizing: "border-box",
-            borderRight: "1px solid",
-            borderColor: "divider",
-            bgcolor: "#0f172a",
-            color: "#f8fafc",
-          },
+          px: 2.5,
+          py: 3,
+          minWidth: 0,
+          overflow: "hidden",
+          boxSizing: "border-box",
         }}
       >
-        <Box sx={{ px: 2.5, py: 3, display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              background: "linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-            }}
-          >
-            <NfcIcon sx={{ fontSize: 22 }} />
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.2, color: "white" }}>
-              {APP_NAME}
+        {brandLogoUrl ? (
+          <Box sx={sidebarBrandBlockSx}>
+            <Box
+              component="img"
+              src={brandLogoUrl}
+              alt=""
+              sx={{ ...sidebarBrandLogoSx, mb: 1 }}
+            />
+            <Typography variant="subtitle1" sx={sidebarBrandTitleSx}>
+              {sidebarTitle}
             </Typography>
-            <Typography variant="caption" sx={{ color: "#94a3b8" }}>
-              {APP_TAGLINE}
+            <Typography variant="caption" sx={sidebarBrandSubtitleSx}>
+              {sidebarSubtitle}
             </Typography>
           </Box>
-        </Box>
-
-        <List component="nav" sx={{ px: 0, flex: 1 }}>
-          {visibleNavItems.map(({ label, href, icon: Icon }) => {
-            const selected = pathname === href;
-            return (
-              <ListItemButton
-                key={href}
-                component={Link}
-                href={href}
-                selected={selected}
-                sx={{
-                  color: selected ? "white" : "#cbd5e1",
-                  "&.Mui-selected": {
-                    bgcolor: "rgba(99, 102, 241, 0.25)",
-                    "&:hover": { bgcolor: "rgba(99, 102, 241, 0.32)" },
-                  },
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 40, color: "inherit" }}>
-                  <Icon sx={{ fontSize: 22 }} />
-                </ListItemIcon>
-                <ListItemText
-                  primary={label}
-                  slotProps={{
-                    primary: {
-                      sx: {
-                        fontWeight: selected ? 700 : 500,
-                        fontSize: "0.9rem",
-                      },
-                    },
-                  }}
-                />
-              </ListItemButton>
-            );
-          })}
-        </List>
-
-        {profile && (
-          <Box sx={{ m: 2 }}>
-            <ListItemButton
-              component={Link}
-              href="/account"
-              selected={pathname === "/account"}
+        ) : (
+          <Box sx={{ ...sidebarBrandBlockSx, gap: 1 }}>
+            <Box
               sx={{
+                width: 40,
+                height: 40,
                 borderRadius: 2,
-                border: "1px solid rgba(255,255,255,0.1)",
-                bgcolor: "rgba(255,255,255,0.04)",
-                py: 1.5,
-                color: "#e2e8f0",
-                "&.Mui-selected": { bgcolor: "rgba(99, 102, 241, 0.2)" },
+                background: `linear-gradient(135deg, ${hexToRgba(brandColor, 0.9)} 0%, ${brandColor} 100%)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "white",
+                flexShrink: 0,
               }}
             >
-              <ListItemIcon sx={{ minWidth: 44 }}>
-                <UserAvatar name={profile.user.name} avatarUrl={profile.user.avatar_url} size={36} />
+              <NfcIcon sx={{ fontSize: 22 }} />
+            </Box>
+            <Typography variant="subtitle1" sx={sidebarBrandTitleSx}>
+              {sidebarTitle}
+            </Typography>
+            <Typography variant="caption" sx={sidebarBrandSubtitleSx}>
+              {sidebarSubtitle}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+
+      <List component="nav" sx={{ px: 0, flex: 1 }}>
+        {showPlatformNav && (
+          <ListItemButton
+            component={Link}
+            href="/platform"
+            selected={pathname.startsWith("/platform")}
+            onClick={onNavigate}
+            sx={{
+              color: pathname.startsWith("/platform") ? "white" : "#cbd5e1",
+              "&.Mui-selected": {
+                bgcolor: navSelectedBg,
+                "&:hover": { bgcolor: navSelectedHoverBg },
+              },
+              "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 44, color: "inherit" }}>
+              <AdminPanelSettingsOutlinedIcon sx={{ fontSize: 22 }} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Platform"
+              slotProps={{
+                primary: {
+                  sx: {
+                    fontWeight: pathname.startsWith("/platform") ? 700 : 500,
+                    fontSize: "0.9rem",
+                  },
+                },
+              }}
+            />
+          </ListItemButton>
+        )}
+        {visibleNavItems.map(({ label, href, icon: Icon }) => {
+          const selected = pathname === href;
+          return (
+            <ListItemButton
+              key={href}
+              component={Link}
+              href={href}
+              selected={selected}
+              onClick={onNavigate}
+              sx={{
+                color: selected ? "white" : "#cbd5e1",
+                "&.Mui-selected": {
+                  bgcolor: navSelectedBg,
+                  "&:hover": { bgcolor: navSelectedHoverBg },
+                },
+                "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 44, color: "inherit" }}>
+                <Icon sx={{ fontSize: 22 }} />
               </ListItemIcon>
               <ListItemText
-                primary={profile.user.name}
-                secondary={profile.company?.company_name ?? profile.user.email}
+                primary={label}
                 slotProps={{
-                  primary: { noWrap: true, sx: { fontWeight: 600, fontSize: "0.875rem", color: "white" } },
-                  secondary: { noWrap: true, sx: { fontSize: "0.75rem", color: "#94a3b8" } },
+                  primary: {
+                    sx: {
+                      fontWeight: selected ? 700 : 500,
+                      fontSize: "0.9rem",
+                    },
+                  },
                 }}
               />
             </ListItemButton>
-          </Box>
-        )}
+          );
+        })}
+      </List>
+
+      {profile && (
+        <Box sx={{ m: 2 }}>
+          <ListItemButton
+            component={Link}
+            href="/account"
+            selected={pathname === "/account"}
+            onClick={onNavigate}
+            sx={{
+              borderRadius: 2,
+              border: "1px solid rgba(255,255,255,0.1)",
+              bgcolor: "rgba(255,255,255,0.04)",
+              py: 1.5,
+              color: "#e2e8f0",
+              "&.Mui-selected": { bgcolor: accountSelectedBg },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 44 }}>
+              <UserAvatar name={profile.user.name} avatarUrl={profile.user.avatar_url} size={36} />
+            </ListItemIcon>
+            <ListItemText
+              primary={profile.user.name}
+              secondary={profile.company?.company_name ?? profile.user.email}
+              slotProps={{
+                primary: { noWrap: true, sx: { fontWeight: 600, fontSize: "0.875rem", color: "white" } },
+                secondary: { noWrap: true, sx: { fontSize: "0.75rem", color: "#94a3b8" } },
+              }}
+            />
+          </ListItemButton>
+        </Box>
+      )}
+    </>
+  );
+}
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const { profile, logout } = useAuth();
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const pageTitle = pageTitles[pathname] ?? APP_NAME;
+  const userIsAdmin = isAdmin(profile?.user.role);
+  const userIsPlatformAdmin = isPlatformAdmin(profile?.is_platform_admin);
+  const visibleNavItems = navItems.filter((item) => userIsAdmin || !item.adminOnly);
+  const showPlatformNav = userIsPlatformAdmin;
+
+  const company = profile?.company;
+  const brandLogoUrl = company?.brand_logo_url?.trim() || null;
+  const brandColor = company?.brand_color?.trim() || DEFAULT_BRAND_COLOR;
+  const sidebarTitle = brandLogoUrl
+    ? company?.brand_display_name?.trim() || company?.company_name || APP_NAME
+    : APP_NAME;
+  const sidebarSubtitle = brandLogoUrl
+    ? company?.brand_tagline?.trim() || APP_TAGLINE
+    : APP_TAGLINE;
+  const navSelectedBg = hexToRgba(brandColor, 0.25);
+  const navSelectedHoverBg = hexToRgba(brandColor, 0.32);
+  const accountSelectedBg = hexToRgba(brandColor, 0.2);
+
+  const drawerNavProps: DrawerNavProps = {
+    pathname,
+    showPlatformNav,
+    visibleNavItems,
+    navSelectedBg,
+    navSelectedHoverBg,
+    accountSelectedBg,
+    brandLogoUrl,
+    brandColor,
+    sidebarTitle,
+    sidebarSubtitle,
+    profile,
+    onNavigate: isMobile ? () => setMobileOpen(false) : undefined,
+  };
+
+  return (
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default", overflowX: "hidden" }}>
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: "block", md: "none" },
+          [`& .MuiDrawer-paper`]: drawerPaperSx,
+        }}
+      >
+        <DrawerNav {...drawerNavProps} />
+      </Drawer>
+
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: "none", md: "block" },
+          width: drawerWidth,
+          flexShrink: 0,
+          [`& .MuiDrawer-paper`]: drawerPaperSx,
+        }}
+      >
+        <DrawerNav {...drawerNavProps} />
       </Drawer>
 
       <Box component="main" sx={{ flexGrow: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <Box
           component="header"
           sx={{
-            height: 64,
-            px: { xs: 2, md: 4 },
+            height: { xs: 56, sm: 64 },
+            px: { xs: 1.5, sm: 2, md: 4 },
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: 1,
             borderBottom: "1px solid",
             borderColor: "divider",
             bgcolor: "background.paper",
@@ -194,20 +390,40 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             zIndex: 10,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            {pageTitle}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0, flex: 1 }}>
+            {isMobile && (
+              <IconButton
+                onClick={() => setMobileOpen(true)}
+                aria-label="Open navigation menu"
+                edge="start"
+                sx={{ flexShrink: 0 }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
+            <Typography variant="h6" sx={{ fontWeight: 700 }} noWrap>
+              {pageTitle}
+            </Typography>
+          </Box>
           {profile && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
               <Chip
                 label={userIsAdmin ? "Admin" : "Member"}
                 size="small"
                 color={userIsAdmin ? "primary" : "default"}
                 variant="outlined"
-                sx={{ display: { xs: "none", sm: "flex" } }}
+                sx={{
+                  display: { xs: "none", sm: "flex" },
+                  ...(userIsAdmin && company?.brand_color
+                    ? {
+                        borderColor: brandColor,
+                        color: brandColor,
+                      }
+                    : {}),
+                }}
               />
               <Tooltip title="Account menu">
-                <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} size="small" aria-label="Account menu">
+                <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label="Account menu">
                   <UserAvatar name={profile.user.name} avatarUrl={profile.user.avatar_url} size={32} />
                 </IconButton>
               </Tooltip>
@@ -250,7 +466,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </Box>
 
-        <Box sx={{ flex: 1, px: { xs: 2, md: 4 }, py: 4, maxWidth: 1280, width: "100%" }}>
+        <Box
+          sx={{
+            flex: 1,
+            px: { xs: 2, sm: 3, md: 4 },
+            py: { xs: 3, md: 4 },
+            maxWidth: 1280,
+            width: "100%",
+            minWidth: 0,
+            overflowX: "hidden",
+            mx: { md: "auto" },
+          }}
+        >
           {children}
         </Box>
       </Box>

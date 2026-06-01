@@ -14,6 +14,7 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Table from "@mui/material/Table";
+import TableContainer from "@mui/material/TableContainer";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
@@ -28,9 +29,11 @@ import PageHeader from "@/components/ui/PageHeader";
 import { useApi } from "@/hooks/useApi";
 import type { CompanyMember, CompanyMemberCreateResponse } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
+import { useFullScreenDialog } from "@/hooks/useFullScreenDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function TeamMembersPage() {
+  const fullScreen = useFullScreenDialog();
   const { request } = useApi();
   const { profile } = useAuth();
   const [members, setMembers] = useState<CompanyMember[]>([]);
@@ -153,6 +156,7 @@ export default function TeamMembersPage() {
             </Button>
           </Box>
         ) : (
+          <TableContainer>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -177,10 +181,11 @@ export default function TeamMembersPage() {
               ))}
             </TableBody>
           </Table>
+          </TableContainer>
         )}
       </ContentCard>
 
-      <Dialog open={dialogOpen} onClose={() => !submitting && setDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => !submitting && setDialogOpen(false)} maxWidth="sm" fullWidth fullScreen={fullScreen}>
         <Box component="form" onSubmit={handleCreate}>
           <DialogTitle>Add team member</DialogTitle>
           <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>

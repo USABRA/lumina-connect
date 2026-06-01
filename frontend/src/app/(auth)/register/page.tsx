@@ -11,7 +11,10 @@ import { FormEvent, useEffect, useState } from "react";
 
 import AuthCard from "@/components/auth/AuthCard";
 import FirebaseSetupAlert from "@/components/auth/FirebaseSetupAlert";
+import BrandColorPicker from "@/components/ui/BrandColorPicker";
+import ImageUploadField from "@/components/ui/ImageUploadField";
 import { useAuth } from "@/contexts/AuthContext";
+import { DEFAULT_BRAND_COLOR } from "@/lib/branding";
 
 export default function RegisterPage() {
   const { signUp, isAuthenticated, loading } = useAuth();
@@ -20,6 +23,9 @@ export default function RegisterPage() {
   const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
+  const [brandLogoUrl, setBrandLogoUrl] = useState("");
+  const [brandLogoFile, setBrandLogoFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,12 +35,31 @@ export default function RegisterPage() {
     }
   }, [loading, isAuthenticated, router]);
 
+  async function handleLogoUpload(file: File): Promise<string> {
+    setBrandLogoFile(file);
+    return URL.createObjectURL(file);
+  }
+
+  function handleLogoChange(url: string) {
+    setBrandLogoUrl(url);
+    if (!url) {
+      setBrandLogoFile(null);
+    }
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError("");
     setSubmitting(true);
     try {
-      await signUp({ name, email, password, companyName });
+      await signUp({
+        name,
+        email,
+        password,
+        companyName,
+        brandColor,
+        brandLogoFile,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -68,6 +93,24 @@ export default function RegisterPage() {
           onChange={(e) => setCompanyName(e.target.value)}
           helperText="Your team's cards will show this brand"
         />
+        <Box sx={{ mt: 2, mb: 1 }}>
+          <ImageUploadField
+            label="Company logo (optional)"
+            helperText="Shown in your dashboard and NFC cards. Uploaded after your account is created."
+            value={brandLogoUrl}
+            onChange={handleLogoChange}
+            onUpload={handleLogoUpload}
+            previewVariant="banner"
+          />
+        </Box>
+        <Box sx={{ mt: 2, mb: 1 }}>
+          <BrandColorPicker
+            label="Brand color"
+            value={brandColor}
+            onChange={setBrandColor}
+            helperText="Used on your NFC card pages and dashboard accents"
+          />
+        </Box>
         <TextField
           label="Email"
           type="email"

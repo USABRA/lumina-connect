@@ -104,7 +104,7 @@ export default function AccountPage() {
 
       <ContentCard title="Profile">
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3, p: 2.5 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2.5 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, flexWrap: "wrap" }}>
             <UserAvatar name={name || profile.user.name} avatarUrl={avatarUrl} size={72} />
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -146,7 +146,7 @@ export default function AccountPage() {
           />
 
           <Box>
-            <Button variant="outlined" component="label" startIcon={<PhotoCameraOutlinedIcon />}>
+            <Button variant="outlined" component="label" startIcon={<PhotoCameraOutlinedIcon />} sx={{ minHeight: 44 }}>
               Upload photo
               <input type="file" accept="image/*" hidden onChange={handleFileChange} />
             </Button>
@@ -162,8 +162,8 @@ export default function AccountPage() {
             )}
           </Box>
 
-          <Box sx={{ display: "flex", gap: 1.5 }}>
-            <Button variant="contained" onClick={handleSave} disabled={saving || !name.trim()}>
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+            <Button variant="contained" onClick={handleSave} disabled={saving || !name.trim()} sx={{ minHeight: 44 }}>
               {saving ? "Saving…" : "Save changes"}
             </Button>
           </Box>

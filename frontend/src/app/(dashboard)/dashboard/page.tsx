@@ -79,7 +79,7 @@ export default function DashboardPage() {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr 1fr", xl: "repeat(4, 1fr)" },
+          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", xl: "repeat(4, 1fr)" },
           gap: 2,
           mb: 2.5,
         }}

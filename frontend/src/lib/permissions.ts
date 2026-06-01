@@ -11,3 +11,15 @@ export function isAdminOnlyPath(pathname: string): boolean {
     (path) => pathname === path || pathname.startsWith(`${path}/`)
   );
 }
+
+export function isPlatformAdmin(flag: boolean | undefined): boolean {
+  return Boolean(flag);
+}
+
+export const PLATFORM_ONLY_PATHS = ["/platform"] as const;
+
+export function isPlatformOnlyPath(pathname: string): boolean {
+  return PLATFORM_ONLY_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
+  );
+}

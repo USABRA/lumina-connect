@@ -461,7 +461,7 @@ export default function MeetingsPage() {
               placeholder="Search cards, campaigns, locations…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              sx={{ flex: 1, minWidth: 220, maxWidth: 420 }}
+          sx={{ flex: { xs: "1 1 100%", sm: 1 }, minWidth: { xs: 0, sm: 220 }, maxWidth: { xs: "none", sm: 420 } }}
               slotProps={{
                 input: {
                   startAdornment: (
@@ -472,7 +472,7 @@ export default function MeetingsPage() {
                 },
               }}
             />
-            <FormControl size="small" sx={{ minWidth: 140 }}>
+            <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 140 }, flex: { xs: "1 1 100%", sm: "0 0 auto" } }}>
               <InputLabel id="meetings-period-label">Period</InputLabel>
               <Select
                 labelId="meetings-period-label"
@@ -502,7 +502,7 @@ export default function MeetingsPage() {
               placeholder="e.g. expo-2026"
               value={filterEventTag}
               onChange={(e) => setFilterEventTag(e.target.value)}
-              sx={{ minWidth: 160 }}
+              sx={{ flex: { xs: "1 1 100%", sm: "0 0 auto" }, minWidth: { xs: 0, sm: 160 } }}
             />
           </Paper>
 

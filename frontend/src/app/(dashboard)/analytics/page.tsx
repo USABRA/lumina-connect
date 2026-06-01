@@ -146,7 +146,7 @@ export default function AnalyticsPage() {
           placeholder="feira-sp-2026"
           value={filterEventTag}
           onChange={(e) => setFilterEventTag(e.target.value)}
-          sx={{ minWidth: 220 }}
+          sx={{ flex: { xs: "1 1 100%", sm: "0 0 auto" }, minWidth: { xs: 0, sm: 220 } }}
         />
       </Box>
 

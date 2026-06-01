@@ -97,7 +97,7 @@ export default function DashboardActivityChart({
         <Tab label="Weekly Taps" />
         <Tab label="Monthly Taps" />
       </Tabs>
-      <Box sx={{ p: 2.5, height: 300 }}>
+      <Box sx={{ p: 2.5, height: { xs: 240, sm: 300 }, minWidth: 0 }}>
         {empty ? (
           <Typography color="text.secondary">No tap activity yet. Share a card to start tracking.</Typography>
         ) : tab === 0 ? (

@@ -24,6 +24,7 @@ import type { CompanyBrand, CompanyMember, TeamStructure } from "@/lib/api";
 import { buildNfcCardLanding, NFC_PRODUCT_TYPE } from "@/lib/nfcCard";
 import { configToPreview, type LandingPageConfig } from "@/lib/landingTemplates";
 import { parseTeamStructure } from "@/lib/teamStructure";
+import { useFullScreenDialog } from "@/hooks/useFullScreenDialog";
 import { useApi } from "@/hooks/useApi";
 
 type NfcCardQuickCreateProps = {
@@ -54,6 +55,7 @@ export default function NfcCardQuickCreate({
   saving = false,
 }: NfcCardQuickCreateProps) {
   const { uploadImage } = useApi();
+  const fullScreen = useFullScreenDialog();
   const [holderName, setHolderName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [teamRoleId, setTeamRoleId] = useState<string | null>(null);
@@ -138,7 +140,7 @@ export default function NfcCardQuickCreate({
   }
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" scroll="paper">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" scroll="paper" fullScreen={fullScreen}>
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <NfcIcon color="primary" />
         New team member card

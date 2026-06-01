@@ -24,7 +24,7 @@ export default function AuthCard({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        p: 2,
+        p: { xs: 1.5, sm: 2 },
         background: `
           radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99, 102, 241, 0.2), transparent),
           linear-gradient(180deg, #0f172a 0%, #1e293b 100%)

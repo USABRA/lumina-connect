@@ -24,6 +24,8 @@ import {
   loginUser,
   registerUser,
   syncUser,
+  updateCompanyBrand,
+  uploadImage,
   type UserProfile,
 } from "@/lib/api";
 import { clearStoredToken, getStoredToken, setStoredToken } from "@/lib/auth-token";
@@ -42,6 +44,8 @@ type AuthContextValue = {
     email: string;
     password: string;
     companyName: string;
+    brandColor?: string;
+    brandLogoFile?: File | null;
   }) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -101,8 +105,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (firebaseUser) {
       return firebaseUser.getIdToken();
     }
+    // When Firebase is configured, never send stale local JWT tokens to the API.
+    if (firebaseReady) {
+      return undefined;
+    }
     return getStoredToken() ?? undefined;
-  }, [firebaseUser]);
+  }, [firebaseUser, firebaseReady]);
 
   const refreshProfile = useCallback(async () => {
     if (firebaseUser) {
@@ -145,6 +153,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
+      if (!user) {
+        clearStoredToken();
+      }
       if (user) {
         try {
           const next = await loadProfile(user);
@@ -194,7 +205,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: string;
       password: string;
       companyName: string;
+      brandColor?: string;
+      brandLogoFile?: File | null;
     }) => {
+      const brandColor = data.brandColor?.trim() || undefined;
+
+      const applyBrandFields = async (
+        token: string,
+        company: UserProfile["company"]
+      ): Promise<UserProfile["company"]> => {
+        let brandLogoUrl = company?.brand_logo_url ?? undefined;
+        if (data.brandLogoFile) {
+          brandLogoUrl = await uploadImage(data.brandLogoFile, token);
+        }
+        if (brandLogoUrl || brandColor) {
+          const updated = await updateCompanyBrand(token, {
+            brand_logo_url: brandLogoUrl ?? null,
+            brand_color: brandColor ?? null,
+          });
+          return updated;
+        }
+        return company;
+      };
+
       const auth = getFirebaseAuth();
       if (auth) {
         try {
@@ -206,11 +239,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await firebaseUpdateProfile(credential.user, { displayName: data.name });
 
           const token = await credential.user.getIdToken();
-          const next = await syncUser(token, {
+          const synced = await syncUser(token, {
             name: data.name,
             company_name: data.companyName,
+            brand_color: brandColor ?? null,
           });
-          setProfile(next);
+          const company = await applyBrandFields(token, synced.company);
+          setProfile({ ...synced, company });
           router.push("/dashboard");
           return;
         } catch (error) {
@@ -224,9 +259,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: data.email,
           password: data.password,
           company_name: data.companyName,
+          brand_color: brandColor ?? null,
         });
+        const company = await applyBrandFields(result.access_token, result.company);
         setStoredToken(result.access_token);
-        setProfile({ user: result.user, company: result.company });
+        setProfile({ user: result.user, company, is_platform_admin: result.is_platform_admin });
         router.push("/dashboard");
       } catch (error) {
         throw new Error(error instanceof Error ? error.message : "Registration failed");

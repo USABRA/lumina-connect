@@ -352,7 +352,7 @@ export default function UnifiedAnalyticsChart({
             onChange={(_, v: ChartMetric | null) => v && setMetric(v)}
           >
             {(Object.keys(METRIC_LABELS) as ChartMetric[]).map((m) => (
-              <ToggleButton key={m} value={m} sx={{ px: 1.5, py: 0.25, textTransform: "none" }}>
+              <ToggleButton key={m} value={m} sx={{ px: 1.5, py: 0.5, textTransform: "none", minHeight: 36 }}>
                 {METRIC_LABELS[m]}
               </ToggleButton>
             ))}
@@ -366,10 +366,10 @@ export default function UnifiedAnalyticsChart({
             value={view}
             onChange={(_, v: ChartView | null) => v && setView(v)}
           >
-            <ToggleButton value="aggregate" sx={{ px: 1.5, py: 0.25, textTransform: "none" }}>
+            <ToggleButton value="aggregate" sx={{ px: 1.5, py: 0.5, textTransform: "none", minHeight: 36 }}>
               Aggregate
             </ToggleButton>
-            <ToggleButton value="cards" sx={{ px: 1.5, py: 0.25, textTransform: "none" }}>
+            <ToggleButton value="cards" sx={{ px: 1.5, py: 0.5, textTransform: "none", minHeight: 36 }}>
               By card
             </ToggleButton>
           </ToggleButtonGroup>
@@ -383,16 +383,16 @@ export default function UnifiedAnalyticsChart({
                 value={groupBy}
                 onChange={(_, v: ChartGroupBy | null) => v && setGroupBy(v)}
               >
-                <ToggleButton value="time" sx={{ px: 1.5, py: 0.25, textTransform: "none" }}>
+                <ToggleButton value="time" sx={{ px: 1.5, py: 0.5, textTransform: "none", minHeight: 36 }}>
                   Over time
                 </ToggleButton>
-                <ToggleButton value="team" sx={{ px: 1.5, py: 0.25, textTransform: "none" }}>
+                <ToggleButton value="team" sx={{ px: 1.5, py: 0.5, textTransform: "none", minHeight: 36 }}>
                   {hasTeamStructure ? "By role" : "By team"}
                 </ToggleButton>
-                <ToggleButton value="location" sx={{ px: 1.5, py: 0.25, textTransform: "none" }}>
+                <ToggleButton value="location" sx={{ px: 1.5, py: 0.5, textTransform: "none", minHeight: 36 }}>
                   Location
                 </ToggleButton>
-                <ToggleButton value="device" sx={{ px: 1.5, py: 0.25, textTransform: "none" }}>
+                <ToggleButton value="device" sx={{ px: 1.5, py: 0.5, textTransform: "none", minHeight: 36 }}>
                   Device
                 </ToggleButton>
               </ToggleButtonGroup>
@@ -415,7 +415,7 @@ export default function UnifiedAnalyticsChart({
           </Box>
         )}
 
-        <Box sx={{ width: "100%", height: 320, mt: 0.5 }}>
+        <Box sx={{ width: "100%", height: { xs: 260, sm: 320 }, mt: 0.5, minWidth: 0 }}>
           {loading ? (
             <Typography color="text.secondary" sx={{ py: 6, textAlign: "center" }}>
               Loading chart…

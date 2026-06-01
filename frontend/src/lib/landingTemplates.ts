@@ -58,6 +58,12 @@ export type LandingPreviewData = {
   primary_color?: string | null;
   landing_blocks?: LandingBlock[];
   brand_website?: string | null;
+  brand_tagline?: string | null;
+  brand_display_name?: string | null;
+  brand_favicon_url?: string | null;
+  brand_secondary_color?: string | null;
+  white_label_enabled?: boolean;
+  hide_platform_branding?: boolean;
   linkedin_url?: string | null;
   whatsapp?: string | null;
   event_tag?: string | null;

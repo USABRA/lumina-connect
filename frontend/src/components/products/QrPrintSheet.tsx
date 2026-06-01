@@ -12,6 +12,8 @@ import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import QRCode from "react-qr-code";
 
+import { useFullScreenDialog } from "@/hooks/useFullScreenDialog";
+
 import { printQrSheet } from "@/lib/qrDownload";
 import type { Product } from "@/lib/api";
 
@@ -23,10 +25,11 @@ type QrPrintSheetProps = {
 };
 
 export default function QrPrintSheet({ open, onClose, products, campaignName }: QrPrintSheetProps) {
+  const fullScreen = useFullScreenDialog();
   const printable = products.filter((p) => p.qr_url && p.status === "active");
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" scroll="paper">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" scroll="paper" fullScreen={fullScreen}>
       <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         QR sheet — {campaignName}
         <IconButton aria-label="close" onClick={onClose} size="small">

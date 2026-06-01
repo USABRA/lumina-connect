@@ -20,11 +20,13 @@ export default function ContentCard({
       {title && (
         <Box
           sx={{
-            px: 2.5,
+            px: { xs: 2, sm: 2.5 },
             py: 2,
             display: "flex",
-            alignItems: "center",
+            alignItems: { xs: "flex-start", sm: "center" },
             justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 1,
             borderBottom: "1px solid",
             borderColor: "divider",
           }}

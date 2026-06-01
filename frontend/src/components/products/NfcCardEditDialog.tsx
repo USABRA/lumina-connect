@@ -23,6 +23,7 @@ import { isAdmin } from "@/lib/permissions";
 import { buildNfcCardLanding } from "@/lib/nfcCard";
 import { configToPreview, type LandingPageConfig } from "@/lib/landingTemplates";
 import { parseTeamStructure } from "@/lib/teamStructure";
+import { useFullScreenDialog } from "@/hooks/useFullScreenDialog";
 import { useApi } from "@/hooks/useApi";
 
 type NfcCardEditDialogProps = {
@@ -53,6 +54,7 @@ export default function NfcCardEditDialog({
   saving = false,
 }: NfcCardEditDialogProps) {
   const { uploadImage } = useApi();
+  const fullScreen = useFullScreenDialog();
   const [holderName, setHolderName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [teamRoleId, setTeamRoleId] = useState<string | null>(null);
@@ -142,7 +144,7 @@ export default function NfcCardEditDialog({
   }
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" scroll="paper">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" scroll="paper" fullScreen={fullScreen}>
       <DialogTitle>Edit card — {product?.unique_code}</DialogTitle>
       <DialogContent dividers>
         <Grid container spacing={3}>

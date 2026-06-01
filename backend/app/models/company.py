@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from sqlalchemy import JSON, String
+from sqlalchemy import JSON, Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base, string_enum
@@ -26,6 +26,11 @@ class Company(Base):
     brand_phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     default_meeting_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     default_pdf_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    white_label_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    hide_platform_branding: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    brand_display_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    brand_favicon_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    brand_secondary_color: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     team_structure: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
 
     users: Mapped[list["User"]] = relationship(back_populates="company")

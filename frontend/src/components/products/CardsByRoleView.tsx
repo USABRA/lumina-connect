@@ -97,7 +97,7 @@ function CardTable({
                     value={card.team_role_id ?? ""}
                     displayEmpty
                     onChange={(e) => onRoleChange(card, e.target.value || null)}
-                    sx={{ minWidth: 160 }}
+                    sx={{ minWidth: { xs: 120, sm: 160 } }}
                   >
                     <MenuItem value="">Unassigned</MenuItem>
                     {structure.roles.map((role) => (
@@ -135,7 +135,7 @@ function CardTable({
                     size="small"
                     value={card.status}
                     onChange={(e) => onStatusChange(card, e.target.value as Product["status"])}
-                    sx={{ minWidth: 110, textTransform: "capitalize" }}
+                    sx={{ minWidth: { xs: 100, sm: 110 }, textTransform: "capitalize" }}
                   >
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>

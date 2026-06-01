@@ -44,7 +44,7 @@ function JoinForm({
   const [company, setCompany] = useState("");
 
   return (
-    <Paper elevation={0} variant="outlined" sx={{ p: 3, borderRadius: 3, maxWidth: 440, mx: "auto" }}>
+    <Paper elevation={0} variant="outlined" sx={{ p: { xs: 2.5, sm: 3 }, borderRadius: 3, maxWidth: 440, width: "100%", mx: "auto" }}>
       <Box sx={{ textAlign: "center", mb: 3 }}>
         <GroupsOutlinedIcon sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
@@ -200,7 +200,7 @@ function MeetingRoomContent({ token }: { token: string }) {
         <Typography variant="overline" color="text.secondary">
           {APP_NAME} · Collaborative meeting
         </Typography>
-        <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>
+        <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5, fontSize: { xs: "1.5rem", sm: "2.125rem" } }}>
           {room.title}
         </Typography>
         <Box sx={{ display: "flex", gap: 1, mt: 1.5, flexWrap: "wrap" }}>

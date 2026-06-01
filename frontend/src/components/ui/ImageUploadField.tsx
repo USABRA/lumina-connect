@@ -128,12 +128,13 @@ export default function ImageUploadField({
           </Avatar>
         )}
 
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
           <Button
             variant="outlined"
             component="label"
             disabled={disabled || uploading}
             startIcon={uploading ? <CircularProgress size={16} /> : <PhotoCameraOutlinedIcon />}
+            sx={{ minHeight: 44 }}
           >
             {uploading ? "Uploading…" : value ? "Change photo" : "Upload photo"}
             <input type="file" accept="image/*" hidden onChange={handleFileChange} />
@@ -145,6 +146,7 @@ export default function ImageUploadField({
               disabled={disabled || uploading}
               startIcon={<DeleteOutlineOutlinedIcon />}
               onClick={() => onChange("")}
+              sx={{ minHeight: 44 }}
             >
               Remove
             </Button>

@@ -68,6 +68,27 @@ def test_register_login_and_me(local_auth_only):
     assert me.json()["user"]["email"] == email
 
 
+def test_register_with_brand_fields(local_auth_only):
+    suffix = uuid.uuid4().hex[:8]
+    email = f"brand-test-{suffix}@example.com"
+
+    register = client.post(
+        "/auth/register",
+        json={
+            "name": "Brand Test",
+            "email": email,
+            "password": "secret123",
+            "company_name": "Brand Test Co",
+            "brand_color": "#ff5500",
+            "brand_logo_url": "https://example.com/logo.png",
+        },
+    )
+    assert register.status_code == 200, register.text
+    company = register.json()["company"]
+    assert company["brand_color"] == "#ff5500"
+    assert company["brand_logo_url"] == "https://example.com/logo.png"
+
+
 def test_auth_status_local_mode(local_auth_only):
     response = client.get("/auth/status")
     assert response.status_code == 200

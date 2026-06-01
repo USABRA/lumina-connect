@@ -23,8 +23,11 @@ export default function PageHeader({
         mb: 4,
       }}
     >
-      <Box>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: 700, mb: 0.5, fontSize: { xs: "1.5rem", sm: "2.125rem" } }}
+        >
           {title}
         </Typography>
         {subtitle && (
@@ -33,7 +36,17 @@ export default function PageHeader({
           </Typography>
         )}
       </Box>
-      {action && <Box sx={{ flexShrink: 0 }}>{action}</Box>}
+      {action && (
+        <Box
+          sx={{
+            flexShrink: 0,
+            width: { xs: "100%", sm: "auto" },
+            "& .MuiButton-root": { width: { xs: "100%", sm: "auto" } },
+          }}
+        >
+          {action}
+        </Box>
+      )}
     </Box>
   );
 }

@@ -124,9 +124,38 @@ export const theme = createTheme({
         },
       },
     },
+    MuiTableContainer: {
+      styleOverrides: {
+        root: {
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+        },
+      },
+    },
+    MuiTable: {
+      styleOverrides: {
+        root: {
+          minWidth: 480,
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          "@media (pointer: coarse)": {
+            minWidth: 44,
+            minHeight: 44,
+          },
+        },
+      },
+    },
     MuiDialog: {
       styleOverrides: {
-        paper: { borderRadius: 16 },
+        paper: {
+          borderRadius: 16,
+          margin: 16,
+          width: "calc(100% - 32px)",
+        },
       },
     },
   },

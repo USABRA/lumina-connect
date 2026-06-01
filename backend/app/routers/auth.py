@@ -15,6 +15,7 @@ from app.database import get_db
 from app.enums import SubscriptionPlan, UserRole
 from app.models import Company, User
 from app.schemas import CompanyRead, UserRead
+from app.services.platform import is_platform_admin
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -22,6 +23,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 class AuthSyncRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     company_name: Optional[str] = Field(default=None, max_length=255)
+    brand_logo_url: Optional[str] = Field(default=None, max_length=500)
+    brand_color: Optional[str] = Field(default=None, max_length=20)
 
 
 class AuthUpdateRequest(BaseModel):
@@ -32,6 +35,7 @@ class AuthUpdateRequest(BaseModel):
 class AuthMeResponse(BaseModel):
     user: UserRead
     company: Optional[CompanyRead] = None
+    is_platform_admin: bool = False
 
 
 class AuthStatusResponse(BaseModel):
@@ -45,6 +49,8 @@ class AuthRegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6, max_length=128)
     company_name: str = Field(min_length=1, max_length=255)
+    brand_logo_url: Optional[str] = Field(default=None, max_length=500)
+    brand_color: Optional[str] = Field(default=None, max_length=20)
 
 
 class AuthLoginRequest(BaseModel):
@@ -57,6 +63,7 @@ class AuthTokenResponse(BaseModel):
     token_type: str = "bearer"
     user: UserRead
     company: Optional[CompanyRead] = None
+    is_platform_admin: bool = False
 
 
 def _get_bearer_token(authorization: Annotated[Optional[str], Header()] = None) -> str:
@@ -88,6 +95,15 @@ def _build_auth_response(user: User, company: Company | None) -> AuthTokenRespon
         access_token=create_access_token(user.id),
         user=UserRead.model_validate(user),
         company=CompanyRead.model_validate(company) if company else None,
+        is_platform_admin=is_platform_admin(user),
+    )
+
+
+def _build_me_response(user: User, company: Company | None) -> AuthMeResponse:
+    return AuthMeResponse(
+        user=UserRead.model_validate(user),
+        company=CompanyRead.model_validate(company) if company else None,
+        is_platform_admin=is_platform_admin(user),
     )
 
 
@@ -116,6 +132,8 @@ def register_user(
     company = Company(
         company_name=body.company_name,
         subscription_plan=SubscriptionPlan.FREE,
+        brand_logo_url=body.brand_logo_url or None,
+        brand_color=body.brand_color or None,
     )
     db.add(company)
     db.flush()
@@ -130,6 +148,7 @@ def register_user(
     db.add(user)
     db.commit()
     db.refresh(user)
+    db.refresh(company)
 
     return _build_auth_response(user, company)
 
@@ -203,6 +222,8 @@ def sync_user(
             company = Company(
                 company_name=company_name,
                 subscription_plan=SubscriptionPlan.FREE,
+                brand_logo_url=body.brand_logo_url or None,
+                brand_color=body.brand_color or None,
             )
             db.add(company)
             db.flush()
@@ -223,10 +244,7 @@ def sync_user(
     if user.company_id:
         company = db.query(Company).filter(Company.id == user.company_id).one_or_none()
 
-    return AuthMeResponse(
-        user=UserRead.model_validate(user),
-        company=CompanyRead.model_validate(company) if company else None,
-    )
+    return _build_me_response(user, company)
 
 
 @router.get("/me", response_model=AuthMeResponse)
@@ -238,10 +256,7 @@ def get_me(
     if user.company_id:
         company = db.query(Company).filter(Company.id == user.company_id).one_or_none()
 
-    return AuthMeResponse(
-        user=UserRead.model_validate(user),
-        company=CompanyRead.model_validate(company) if company else None,
-    )
+    return _build_me_response(user, company)
 
 
 @router.patch("/me", response_model=AuthMeResponse)
@@ -262,7 +277,4 @@ def update_me(
     if user.company_id:
         company = db.query(Company).filter(Company.id == user.company_id).one_or_none()
 
-    return AuthMeResponse(
-        user=UserRead.model_validate(user),
-        company=CompanyRead.model_validate(company) if company else None,
-    )
+    return _build_me_response(user, company)

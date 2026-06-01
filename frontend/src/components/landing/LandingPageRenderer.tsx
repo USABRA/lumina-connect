@@ -24,7 +24,7 @@ import NfcCardContactForm from "@/components/landing/NfcCardContactForm";
 import { cardWhatsAppGreeting } from "@/lib/cardI18n";
 import type { LandingBlock } from "@/lib/landingBlocks";
 import type { LandingPreviewData } from "@/lib/landingTemplates";
-import { APP_NAME } from "@/lib/branding";
+import { APP_NAME, publicCompanyName, shouldHidePlatformBranding } from "@/lib/branding";
 import { getContactVcardUrl } from "@/lib/api";
 import { openTrackedMeetingLink } from "@/lib/trackInteraction";
 import { normalizeLinkedInUrl, whatsappHref } from "@/lib/vcard";
@@ -187,7 +187,7 @@ function ContactSection({
             {title}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: compact ? 2 : 3 }}>
-            Fill out the form and {product.company_name} will get back to you.
+            Fill out the form and {publicCompanyName(product)} will get back to you.
           </Typography>
           <LeadForm productCode={product.unique_code} preview={preview} accentColor={preview ? undefined : color} />
         </Paper>
@@ -303,7 +303,7 @@ function PageSplit({ product, color, headline, highlights, embedUrl, preview, co
                 <img src={product.logo_url} alt="" style={{ maxHeight: compact ? 40 : 64 }} />
               </Box>
             )}
-            <Typography variant="overline" color="text.secondary">{product.company_name}</Typography>
+            <Typography variant="overline" color="text.secondary">{publicCompanyName(product)}</Typography>
             <Typography variant={compact ? "h5" : "h3"} sx={{ fontWeight: 800, mt: 1, mb: 2, letterSpacing: "-0.02em" }}>
               {headline}
             </Typography>
@@ -412,7 +412,7 @@ function PageMediaCenter({ product, color, headline, embedUrl, preview, compact 
   return (
     <Box sx={{ bgcolor: "#0f172a", color: "white", minHeight: compact ? "auto" : "100vh" }}>
       <Container maxWidth="lg" sx={{ py: compact ? 2 : 4 }}>
-        <Typography variant="overline" sx={{ opacity: 0.7 }}>{product.company_name}</Typography>
+        <Typography variant="overline" sx={{ opacity: 0.7 }}>{publicCompanyName(product)}</Typography>
         <Typography variant={compact ? "h5" : "h3"} sx={{ fontWeight: 800, mt: 1, mb: 3 }}>{headline}</Typography>
         {embedUrl ? (
           <VideoBlock embedUrl={embedUrl} compact={compact} />
@@ -584,7 +584,7 @@ function PageNfcCard({ product, color, headline, preview, compact }: PageProps) 
             </Typography>
           )}
           <Typography variant="body2" sx={{ mt: 1, opacity: 0.75, textAlign: "center" }}>
-            {product.company_name}
+            {publicCompanyName(product)}
           </Typography>
         </Box>
 
@@ -1024,6 +1024,7 @@ export default function LandingPageRenderer({
   );
 
   const props: PageProps = { product, color, headline, highlights, embedUrl, preview, compact };
+  const hidePlatformBranding = shouldHidePlatformBranding(product);
 
   const page =
     template === "custom" ? (
@@ -1045,7 +1046,7 @@ export default function LandingPageRenderer({
   return (
     <Box>
       {page}
-      {!compact && template !== "nfc_card" && (
+      {!compact && !hidePlatformBranding && template !== "nfc_card" && (
         <Box sx={{ py: 3, textAlign: "center", bgcolor: "#f8fafc", borderTop: "1px solid", borderColor: "divider" }}>
           <Typography variant="caption" color="text.secondary">
             Powered by {APP_NAME}

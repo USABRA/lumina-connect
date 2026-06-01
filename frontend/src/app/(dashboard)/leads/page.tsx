@@ -298,7 +298,7 @@ export default function LeadsPage() {
           placeholder={hasTeamStructure ? "Search leads, roles, cards…" : "Search across all campaigns…"}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          sx={{ flex: 1, minWidth: 220, maxWidth: 420 }}
+          sx={{ flex: { xs: "1 1 100%", sm: 1 }, minWidth: { xs: 0, sm: 220 }, maxWidth: { xs: "none", sm: 420 } }}
           slotProps={{
             input: {
               startAdornment: (
@@ -324,7 +324,7 @@ export default function LeadsPage() {
           placeholder="feira-sp-2026"
           value={filterEventTag}
           onChange={(e) => setFilterEventTag(e.target.value)}
-          sx={{ minWidth: 180 }}
+          sx={{ flex: { xs: "1 1 100%", sm: "0 0 auto" }, minWidth: { xs: 0, sm: 180 } }}
         />
         <Typography variant="body2" color="text.secondary">
           {filtered.length} lead{filtered.length === 1 ? "" : "s"}
