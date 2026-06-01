@@ -2,6 +2,12 @@
 
 Guia passo a passo para colocar o MVP em produção.
 
+## Segurança
+
+Antes do go-live, siga o checklist em **[SECURITY.md](./SECURITY.md)** (`ENVIRONMENT=production`, `JWT_SECRET_KEY`, `PLATFORM_ADMIN_EMAILS`, rotação Firebase, etc.).
+
+---
+
 ## Visão geral
 
 | Componente | Onde | URL exemplo |

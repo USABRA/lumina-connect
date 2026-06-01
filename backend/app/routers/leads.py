@@ -18,6 +18,7 @@ from app.services.event_tag import normalize_event_tag, resolve_event_tag
 from app.services.geoip import lookup_geo
 from app.services.notifications import notify_new_lead
 from app.services.product_access import require_active_product
+from app.security.rate_limit import RateLimit
 from app.services.request_meta import get_client_ip
 from app.services.team_structure import filter_product_ids_by_team, resolve_role
 
@@ -46,6 +47,7 @@ def submit_lead(
     body: LeadSubmit,
     request: Request,
     db: Annotated[Session, Depends(get_db)],
+    _rate_limit: RateLimit("leads_submit"),
 ) -> LeadRead:
     product = (
         db.query(Product)

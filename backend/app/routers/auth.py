@@ -15,6 +15,7 @@ from app.database import get_db
 from app.enums import SubscriptionPlan, UserRole
 from app.models import Company, User
 from app.schemas import CompanyRead, UserRead
+from app.security.rate_limit import RateLimit
 from app.services.platform import is_platform_admin
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -119,6 +120,7 @@ def _require_local_auth() -> None:
 def register_user(
     body: AuthRegisterRequest,
     db: Annotated[Session, Depends(get_db)],
+    _rate_limit: RateLimit("auth_register"),
 ) -> AuthTokenResponse:
     _require_local_auth()
 
@@ -157,6 +159,7 @@ def register_user(
 def login_user(
     body: AuthLoginRequest,
     db: Annotated[Session, Depends(get_db)],
+    _rate_limit: RateLimit("auth_login"),
 ) -> AuthTokenResponse:
     _require_local_auth()
 

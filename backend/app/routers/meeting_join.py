@@ -4,11 +4,12 @@ import datetime
 import secrets
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
+from app.security.rate_limit import RateLimit
 from app.models.meeting import (
     DEFAULT_NOTE_SECTIONS,
     MeetingNote,
@@ -146,9 +147,10 @@ def get_room(
 
 @router.post("/{token}/join", response_model=JoinResponse)
 def join_room(
-    token: str,
+    token: Annotated[str, Path(min_length=1, max_length=64)],
     body: JoinRequest,
     db: Annotated[Session, Depends(get_db)],
+    _rate_limit: RateLimit("meeting_join"),
 ) -> JoinResponse:
     meeting = _get_meeting_by_token(token, db)
     if meeting.status == "closed":

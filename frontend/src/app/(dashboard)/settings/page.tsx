@@ -17,6 +17,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
 import type { CompanyBrand, CompanyBrandUpdate } from "@/lib/api";
+import { safeExternalUrlError } from "@/lib/safeUrl";
 
 export default function SettingsPage() {
   const { profile } = useAuth();
@@ -62,6 +63,21 @@ export default function SettingsPage() {
     setSaving(true);
     setError("");
     setSuccess("");
+    const urlFields: Array<[string, string | null | undefined]> = [
+      ["Website", form.brand_website],
+      ["Meeting link", form.default_meeting_url],
+      ["PDF link", form.default_pdf_url],
+      ["Logo URL", form.brand_logo_url],
+      ["Favicon URL", form.brand_favicon_url],
+    ];
+    for (const [label, value] of urlFields) {
+      const msg = safeExternalUrlError(value ?? "");
+      if (msg) {
+        setError(`${label}: ${msg}`);
+        setSaving(false);
+        return;
+      }
+    }
     try {
       await request<CompanyBrand>("/companies/brand", {
         method: "PATCH",

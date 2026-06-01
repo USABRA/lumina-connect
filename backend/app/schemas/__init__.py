@@ -3,13 +3,14 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.enums import ProductStatus, SubscriptionPlan, UserRole
+from app.security.safe_urls import validate_safe_http_url
 
 
 class CompanyBase(BaseModel):
-    company_name: str
+    company_name: str = Field(min_length=1, max_length=255)
     subscription_plan: SubscriptionPlan = SubscriptionPlan.FREE
 
 
@@ -72,6 +73,22 @@ class CompanyBrandUpdate(BaseModel):
     brand_display_name: Optional[str] = Field(default=None, max_length=255)
     brand_favicon_url: Optional[str] = Field(default=None, max_length=500)
     brand_secondary_color: Optional[str] = Field(default=None, max_length=20)
+
+    @field_validator(
+        "brand_logo_url",
+        "brand_website",
+        "default_meeting_url",
+        "default_pdf_url",
+        "brand_favicon_url",
+        mode="before",
+    )
+    @classmethod
+    def validate_external_urls(cls, value: object) -> object:
+        if value is None or isinstance(value, str) and not str(value).strip():
+            return value
+        if isinstance(value, str):
+            return validate_safe_http_url(value)
+        return value
 
 
 class UserBase(BaseModel):
@@ -176,7 +193,7 @@ class CompanyMemberCreateResponse(CompanyMemberRead):
 
 class LandingPageUpdate(BaseModel):
     landing_headline: Optional[str] = Field(default=None, max_length=255)
-    landing_description: Optional[str] = None
+    landing_description: Optional[str] = Field(default=None, max_length=10000)
     logo_url: Optional[str] = Field(default=None, max_length=500)
     video_url: Optional[str] = Field(default=None, max_length=500)
     pdf_url: Optional[str] = Field(default=None, max_length=500)
@@ -188,10 +205,27 @@ class LandingPageUpdate(BaseModel):
     highlight_1: Optional[str] = Field(default=None, max_length=255)
     highlight_2: Optional[str] = Field(default=None, max_length=255)
     highlight_3: Optional[str] = Field(default=None, max_length=255)
-    landing_blocks: Optional[list[dict[str, Any]]] = None
+    landing_blocks: Optional[list[dict[str, Any]]] = Field(default=None, max_length=50)
     linkedin_url: Optional[str] = Field(default=None, max_length=500)
     whatsapp: Optional[str] = Field(default=None, max_length=50)
     event_tag: Optional[str] = Field(default=None, max_length=100)
+
+    @field_validator(
+        "logo_url",
+        "video_url",
+        "pdf_url",
+        "meeting_url",
+        "hero_image_url",
+        "linkedin_url",
+        mode="before",
+    )
+    @classmethod
+    def validate_landing_urls(cls, value: object) -> object:
+        if value is None or isinstance(value, str) and not str(value).strip():
+            return value
+        if isinstance(value, str):
+            return validate_safe_http_url(value)
+        return value
 
 
 class LeadSubmit(BaseModel):

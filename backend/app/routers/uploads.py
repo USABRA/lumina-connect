@@ -20,6 +20,22 @@ ALLOWED_IMAGE_TYPES = {
 }
 MAX_IMAGE_BYTES = 2 * 1024 * 1024
 
+_IMAGE_SIGNATURES: dict[str, tuple[bytes, ...]] = {
+    ".jpg": (b"\xff\xd8\xff",),
+    ".png": (b"\x89PNG\r\n\x1a\n",),
+    ".gif": (b"GIF87a", b"GIF89a"),
+    ".webp": (b"RIFF",),
+}
+
+
+def _matches_image_signature(extension: str, content: bytes) -> bool:
+    signatures = _IMAGE_SIGNATURES.get(extension, ())
+    if not signatures:
+        return False
+    if extension == ".webp":
+        return len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP"
+    return any(content.startswith(sig) for sig in signatures)
+
 
 class UploadResponse(BaseModel):
     url: str
@@ -50,13 +66,20 @@ async def upload_image(
         raise HTTPException(status_code=400, detail="Empty file")
     if len(content) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=400, detail="Image too large (max 2 MB)")
+    if not _matches_image_signature(extension, content):
+        raise HTTPException(status_code=400, detail="File content does not match image type")
 
-    upload_root = Path(settings.upload_dir)
-    company_dir = upload_root / f"company_{user.company_id}"
+    upload_root = Path(settings.upload_dir).resolve()
+    company_dir = (upload_root / f"company_{user.company_id}").resolve()
     company_dir.mkdir(parents=True, exist_ok=True)
 
     filename = f"{uuid.uuid4().hex}{extension}"
-    destination = company_dir / filename
+    if "/" in filename or "\\" in filename or filename.startswith("."):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    destination = (company_dir / filename).resolve()
+    if not str(destination).startswith(str(company_dir)):
+        raise HTTPException(status_code=400, detail="Invalid upload path")
     destination.write_bytes(content)
 
     public_url = f"{_public_base_url(request)}/uploads/company_{user.company_id}/{filename}"

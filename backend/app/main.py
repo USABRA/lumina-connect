@@ -3,6 +3,9 @@ from pathlib import Path
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
+from app.middleware.security_headers import SecurityHeadersMiddleware
+from app.security.exceptions import register_exception_handlers
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
@@ -29,8 +32,12 @@ app = FastAPI(
     title="Lumina Connect API",
     description="Backend API for Lumina Connect MVP",
     version="0.7.0",
+    debug=settings.debug,
 )
 
+register_exception_handlers(app)
+
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,

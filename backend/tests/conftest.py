@@ -5,6 +5,14 @@ from __future__ import annotations
 import pytest
 
 from app.config import settings
+from app.security.rate_limit import reset_rate_limits_for_tests
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits_between_tests():
+    reset_rate_limits_for_tests()
+    yield
+    reset_rate_limits_for_tests()
 
 
 @pytest.fixture

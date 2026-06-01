@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads"
     api_public_url: str = ""
     platform_admin_emails: str = ""
+    environment: str = "development"
+    debug: bool = False
+    rate_limit_enabled: bool = True
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.strip().lower() in ("production", "prod")
 
     @property
     def cors_origins_list(self) -> list[str]:

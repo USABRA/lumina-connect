@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
@@ -13,6 +13,7 @@ from app.services.geoip import lookup_geo
 from app.services.event_tag import resolve_event_tag
 from app.services.interaction_actions import normalize_track_action
 from app.services.product_access import require_active_product
+from app.security.rate_limit import RateLimit
 from app.services.request_meta import get_client_ip
 
 router = APIRouter(prefix="/track", tags=["tracking"])
@@ -27,9 +28,10 @@ class TrackResponse(BaseModel):
 
 @router.post("/{unique_code}", response_model=TrackResponse, status_code=status.HTTP_201_CREATED)
 def track_scan(
-    unique_code: str,
+    unique_code: Annotated[str, Path(min_length=1, max_length=100)],
     request: Request,
     db: Annotated[Session, Depends(get_db)],
+    _rate_limit: RateLimit("track_scan"),
     event: Annotated[Optional[str], Query(max_length=100)] = None,
     action: Annotated[Optional[str], Query(max_length=50)] = None,
 ) -> TrackResponse:

@@ -1,3 +1,8 @@
+/**
+ * Local JWT is stored in localStorage (XSS can exfiltrate it).
+ * Prefer httpOnly cookies in a future auth hardening pass.
+ * Tokens are cleared on logout via clearStoredToken().
+ */
 const TOKEN_KEY = "lumina_access_token";
 
 export function getStoredToken(): string | null {
