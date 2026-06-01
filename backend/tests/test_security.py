@@ -94,3 +94,43 @@ def test_public_login_error_sanitized_in_production(local_auth_only, monkeypatch
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Unauthorized"
+
+
+def test_login_with_firebase_returns_generic_error(monkeypatch):
+    monkeypatch.setattr(settings, "firebase_project_id", "test-project")
+    monkeypatch.setattr(settings, "firebase_client_email", "test@test.iam.gserviceaccount.com")
+    monkeypatch.setattr(settings, "firebase_private_key", "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----\n")
+
+    response = client.post(
+        "/auth/login",
+        json={"email": "nobody@example.com", "password": "bad"},
+    )
+    assert response.status_code == 401
+    assert "Local auth" not in response.text
+    assert response.json()["detail"] in ("Invalid email or password", "Unauthorized")
+
+
+def test_health_db_minimal_in_production(monkeypatch):
+    monkeypatch.setattr(settings, "environment", "production")
+
+    response = client.get("/health/db")
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {"status": "ok", "database": "connected"}
+    assert "counts" not in body
+    assert "tables" not in body
+
+
+def test_leads_submit_not_found_sanitized_in_production(monkeypatch):
+    monkeypatch.setattr(settings, "environment", "production")
+
+    response = client.post(
+        "/leads",
+        json={
+            "product_code": "INVALID99",
+            "name": "Test",
+            "email": "test@example.com",
+        },
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Not found"

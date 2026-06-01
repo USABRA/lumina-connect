@@ -111,8 +111,8 @@ def _build_me_response(user: User, company: Company | None) -> AuthMeResponse:
 def _require_local_auth() -> None:
     if settings.firebase_configured:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Local auth is disabled when Firebase is configured",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
         )
 
 

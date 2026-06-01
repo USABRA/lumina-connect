@@ -74,6 +74,9 @@ def health_db(db: Session = Depends(get_db)) -> dict:
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
 
+    if settings.is_production:
+        return {"status": "ok", "database": "connected"}
+
     tables = set(inspect(engine).get_table_names())
     expected = {"companies", "users", "campaigns", "products", "interactions", "leads"}
     missing = sorted(expected - tables)
