@@ -119,13 +119,18 @@ export default function NfcCardQuickCreate({
       whatsapp: whatsapp || undefined,
       contactFormEnabled,
     });
-    await onCreate({
-      product_type: NFC_PRODUCT_TYPE,
-      unique_code: customCode.trim() || undefined,
-      team_role_id: teamRoleId,
-      assigned_user_id: assignedUserId,
-      landing,
-    });
+    try {
+      await onCreate({
+        product_type: NFC_PRODUCT_TYPE,
+        unique_code: customCode.trim() || undefined,
+        team_role_id: teamRoleId,
+        assigned_user_id: assignedUserId,
+        landing,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create card");
+      return;
+    }
     setHolderName("");
     setJobTitle("");
     setTeamRoleId(null);

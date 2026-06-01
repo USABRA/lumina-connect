@@ -14,6 +14,7 @@ from app.enums import ProductStatus
 from app.models import Campaign, Product, User
 from app.schemas import LandingPageUpdate, ProductRead
 from app.services.access import get_company_campaign, require_company
+from app.services.campaigns import ensure_default_campaign
 from app.services.permissions import (
     apply_product_scope,
     company_scoped_product_ids,
@@ -44,7 +45,7 @@ class ProductUpdate(BaseModel):
 
 
 class ProductCreateRequest(BaseModel):
-    campaign_id: int
+    campaign_id: Optional[int] = None
     product_type: str = Field(min_length=1, max_length=100)
     unique_code: Optional[str] = Field(default=None, min_length=4, max_length=100)
     team_role_id: Optional[str] = Field(default=None, max_length=100)
@@ -249,13 +250,19 @@ def create_product(
     db: Annotated[Session, Depends(get_db)],
 ) -> ProductRead:
     company_id = require_company(user)
-    get_company_campaign(db, body.campaign_id, company_id)
+    if body.campaign_id is not None:
+        get_company_campaign(db, body.campaign_id, company_id)
+        campaign_id = body.campaign_id
+    else:
+        campaign = ensure_default_campaign(db, company_id)
+        db.flush()
+        campaign_id = campaign.id
     resolve_assigned_user_id_for_create(user, body.assigned_user_id)
     assigned_user_id = validate_assigned_user_id(db, company_id, body.assigned_user_id)
 
     code = _unique_code(db, body.unique_code.upper() if body.unique_code else None)
     product = Product(
-        campaign_id=body.campaign_id,
+        campaign_id=campaign_id,
         unique_code=code,
         product_type=body.product_type,
         qr_url=_build_qr_url(code),

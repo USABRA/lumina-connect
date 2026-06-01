@@ -14,6 +14,7 @@ from app.config import settings
 from app.database import get_db
 from app.enums import SubscriptionPlan, UserRole
 from app.models import Company, User
+from app.services.campaigns import ensure_default_campaign
 from app.schemas import CompanyRead, UserRead
 from app.security.rate_limit import RateLimit
 from app.services.platform import is_platform_admin
@@ -139,6 +140,7 @@ def register_user(
     )
     db.add(company)
     db.flush()
+    ensure_default_campaign(db, company.id, name=body.company_name)
 
     user = User(
         name=body.name,
@@ -230,6 +232,7 @@ def sync_user(
             )
             db.add(company)
             db.flush()
+            ensure_default_campaign(db, company.id, name=company_name)
 
             user = User(
                 firebase_uid=firebase_uid,

@@ -77,6 +77,12 @@ export default function TeamCardsPage() {
         setMembers(membersList);
         if (camps.length > 0) {
           setCampaignId(camps[0].id);
+        } else if (userIsAdmin) {
+          const created = await request<Campaign>("/campaigns", {
+            method: "POST",
+            body: JSON.stringify({ name: companyName || "Team cards" }),
+          });
+          setCampaignId(created.id);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load");
@@ -84,7 +90,7 @@ export default function TeamCardsPage() {
         setLoading(false);
       }
     })();
-  }, [request, userIsAdmin]);
+  }, [request, userIsAdmin, companyName]);
 
   useEffect(() => {
     if (campaignId) {
@@ -101,14 +107,13 @@ export default function TeamCardsPage() {
     assigned_user_id?: number | null;
     landing: LandingPageConfig;
   }) {
-    if (!campaignId) return;
     setSaving(true);
     setError("");
     try {
       await request<Product>("/products", {
         method: "POST",
         body: JSON.stringify({
-          campaign_id: campaignId,
+          campaign_id: campaignId ?? undefined,
           product_type: payload.product_type,
           unique_code: payload.unique_code,
           team_role_id: payload.team_role_id ?? null,
@@ -116,11 +121,16 @@ export default function TeamCardsPage() {
           landing: landingConfigToPayload(payload.landing),
         }),
       });
+      if (!campaignId) {
+        const camps = await request<Campaign[]>("/campaigns");
+        if (camps.length > 0) setCampaignId(camps[0].id);
+      }
       setNfcOpen(false);
       await loadCards();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create card");
-      throw err;
+      const message = err instanceof Error ? err.message : "Failed to create card";
+      setError(message);
+      throw new Error(message);
     } finally {
       setSaving(false);
     }
@@ -229,7 +239,7 @@ export default function TeamCardsPage() {
               <Button
                 variant="contained"
                 startIcon={<NfcIcon />}
-                disabled={!campaignId}
+                disabled={loading}
                 onClick={() => setNfcOpen(true)}
               >
                 Add team member
@@ -238,6 +248,12 @@ export default function TeamCardsPage() {
           ) : undefined
         }
       />
+
+      {userIsAdmin && !campaignId && !loading && (
+        <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+          Setting up your workspace… If card creation fails, refresh the page.
+        </Alert>
+      )}
 
       {!brandReady && userIsAdmin && (
         <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
@@ -280,7 +296,12 @@ export default function TeamCardsPage() {
           }
           action={
             userIsAdmin ? (
-              <Button variant="contained" startIcon={<NfcIcon />} onClick={() => setNfcOpen(true)}>
+              <Button
+                variant="contained"
+                startIcon={<NfcIcon />}
+                disabled={loading}
+                onClick={() => setNfcOpen(true)}
+              >
                 Add team member
               </Button>
             ) : undefined
