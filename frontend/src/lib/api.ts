@@ -1,4 +1,11 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const DEFAULT_API_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://lumina-api-g99a.onrender.com"
+    : "http://localhost:8000";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL;
+
+const API_FETCH_TIMEOUT_MS = 45_000;
 
 export type UserProfile = {
   user: {
@@ -515,6 +522,7 @@ export async function apiFetch<T>(
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers,
+    signal: options.signal ?? AbortSignal.timeout(API_FETCH_TIMEOUT_MS),
   });
 
   if (!response.ok) {

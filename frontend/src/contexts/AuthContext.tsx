@@ -151,22 +151,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
       if (!user) {
         clearStoredToken();
+        setProfile(null);
+        setLoading(false);
+        return;
       }
-      if (user) {
+
+      // Resolve auth gate immediately; profile fetch must not block the dashboard shell
+      // (Render cold starts can take 30–90s and previously caused an infinite spinner).
+      setLoading(false);
+
+      void (async () => {
         try {
           const next = await loadProfile(user);
           setProfile(next);
         } catch {
           setProfile(null);
         }
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
+      })();
     });
 
     return unsubscribe;
